@@ -1,0 +1,65 @@
+GET http://localhost:4000/owner-api/details
+
+###
+GET http://localhost:4000/operator-api/test2
+
+###
+POST http://localhost:4000/owner-api/login
+Content-Type: application/json
+
+{
+    "id":"22071A05K6",
+    "password":"bhanu@2004"
+}
+###
+
+###
+POST http://localhost:4000/owner-api/addemployee
+Content-Type: application/json
+
+{
+    "id":"Ramesh",
+    "username":"bhanusasasas",
+    "email":"jahgh@gmail.com"
+}
+
+###
+POST http://localhost:4000/admin-api/ownerregistration
+Content-Type: application/json
+
+{
+    "name":"Vishnu",
+    "id":"22071A0555",
+    "email":"vishnu@gmail.com",
+    "branch":"hydreabad",
+    "password":"vishnu2004"
+}
+
+
+###
+POST  http://localhost:4000/operator-api/register
+Content-Type: application/json
+
+{
+    "name":"Akhil",
+    "id":"22071A05Q4",
+    "password":"Akhil@2004",
+    "confirmPassword":"Akhil@2004"
+}
+
+###
+DELETE http://localhost:4000/owner-api/deleteemployee
+Content-Type: application/json
+
+{
+    "id":"22071A0549"
+}
+
+###
+POST http://localhost:4000/operator-api/login
+Content-Type: application/json
+
+{
+    "id":"22071A05Q4",
+    "password":"Akhil@2004"
+}

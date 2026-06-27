@@ -1,0 +1,74 @@
+/* General container styling */
+.container {
+    font-family: 'Arial', sans-serif;
+  }
+  
+  /* Navbar custom styles */
+  .navbar {
+    background-color: #a0fca0ea;
+    color: white;
+  }
+  
+  .navbar-brand {
+    color: white;
+    font-weight: bold;
+  }
+  
+  .navbar-brand:hover {
+    color: #d4e1f5;
+  }
+  
+  .nav-link {
+    color: white;
+    cursor: pointer;
+  }
+  
+  .nav-link.active {
+    background-color: #0056b3;
+    border-radius: 5px;
+  }
+  
+  .nav-link:hover {
+    color: #d4e1f5;
+  }
+  
+  /* Logout button */
+  .btn-danger {
+    font-size: 0.9rem;
+    font-weight: bold;
+  }
+  
+  /* Dynamic content section */
+  .dynamic-content {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Registration form */
+  form h4 {
+    color: #116fd4;
+    margin-bottom: 20px;
+  }
+  
+  form .form-label {
+    font-weight: bold;
+  }
+  
+  form .form-control {
+    border-radius: 5px;
+  }
+  
+  form .btn-primary {
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+  }
+  
+  form .btn-primary:hover {
+    background-color: #0056b3;
+  }
+  
