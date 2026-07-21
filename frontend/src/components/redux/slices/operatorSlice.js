@@ -1,19 +1,18 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
+import { apiUrl } from "../../../config/api";
 
-// Thunk for operator login
 export const operatorLoginThunk = createAsyncThunk(
   "operator-login",
   async (operatorCredObj, thunkApi) => {
     try {
       const res = await axios.post(
-        "https://ashrmservices.onrender.com/operator-api/login",
+        apiUrl("/operator-api/login"),
         operatorCredObj
       );
       if (res.data.message === "login success") {
-        // Store token in localStorage
         localStorage.setItem("token", res.data.token);
-        localStorage.setItem("currentOperator", JSON.stringify(res.data.operator)); // Persist operator data
+        localStorage.setItem("currentOperator", JSON.stringify(res.data.operator));
         return res.data;
       } else {
         return thunkApi.rejectWithValue(res.data.message);
@@ -24,7 +23,6 @@ export const operatorLoginThunk = createAsyncThunk(
   }
 );
 
-// Load initial state from localStorage
 const loadOperatorStateFromLocalStorage = () => {
   const token = localStorage.getItem("token");
   const currentOperator = JSON.parse(localStorage.getItem("currentOperator") || "{}");
@@ -72,8 +70,6 @@ export const operatorSlice = createSlice({
       }),
 });
 
-// Export action creator functions
 export const { resetState } = operatorSlice.actions;
 
-// Export root reducer of this slice
 export default operatorSlice.reducer;

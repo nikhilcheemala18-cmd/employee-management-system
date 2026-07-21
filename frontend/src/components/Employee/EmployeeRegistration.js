@@ -1,38 +1,34 @@
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
-import React, { useState, useEffect } from 'react';
-import * as XLSX from "xlsx"; // Import xlsx library
-import { useNavigate, Link } from "react-router-dom";
-
+import React, { useEffect, useState } from 'react';
+import * as XLSX from "xlsx";
+import { useNavigate } from "react-router-dom";
+import { Upload, UserPlus } from "lucide-react";
+import { apiUrl, authHeaders } from "../../config/api";
+import { clusterServiceCenters } from "../../constants/locationData";
+import PageHeader from "../ui/PageHeader";
+import Toast from "../ui/Toast";
 
 const EmployeeRegistration = () => {
-    const data={
-        "Andhra Pradesh": ["Anantapur", "Chittoor", "East Godavari", "Guntur", "Krishna", "Kurnool", "Nellore", "Prakasam", "Srikakulam", "Visakhapatnam"],
-        "Bihar": ["Araria", "Aurangabad", "Begusarai", "Bhagalpur", "Bhojpur", "Darbhanga", "Gaya", "Muzaffarpur", "Patna", "Purnia"],
-        "Gujarat": ["Ahmedabad", "Amreli", "Anand", "Banaskantha", "Bharuch", "Bhavnagar", "Dahod", "Gandhinagar", "Jamnagar", "Junagadh"],
-        "Karnataka": ["Bagalkot", "Ballari", "Belagavi", "Bengaluru Rural", "Bengaluru Urban", "Bidar", "Chamarajanagar", "Chikballapur", "Chikkamagaluru", "Dakshina Kannada"],
-        "Kerala": ["Alappuzha", "Ernakulam", "Idukki", "Kannur", "Kasaragod", "Kollam", "Kottayam", "Kozhikode", "Malappuram", "Palakkad"],
-        "Madhya Pradesh": ["Agar Malwa", "Alirajpur", "Anuppur", "Ashoknagar", "Balaghat", "Barwani", "Betul", "Bhind", "Bhopal", "Burhanpur"],
-        "Maharashtra": ["Ahmednagar", "Akola", "Amravati", "Aurangabad", "Beed", "Bhandara", "Chandrapur", "Dhule", "Gadchiroli", "Gondia"],
-        "Telangana": ["Adilabad", "Bhadradri Kothagudem", "Hyderabad", "Jagtial", "Jangaon", "Jayashankar Bhupalpally", "Jogulamba Gadwal", "Kamareddy", "Karimnagar", "Khammam"],
-        "Tamil Nadu": ["Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore", "Dharmapuri", "Dindigul", "Erode", "Kallakurichi", "Kanchipuram"],
-        "Uttar Pradesh": ["Agra", "Aligarh", "Ambedkar Nagar", "Amethi", "Amroha", "Auraiya", "Ayodhya", "Azamgarh", "Baghpat", "Bahraich"]
-      }
   const registrationForm = useForm();
-    const navigate = useNavigate();
-  
-  const { register, handleSubmit, formState: { errors }, reset , watch } = useForm();
- const [serviceCenters, setServiceCenters] = useState([]);
-  const [selectedCluster,setCluster]=useState('')
-  const clusterData = Object.keys(data)
+  const { formState: { errors } } = registrationForm;
+  const navigate = useNavigate();
+  const [serviceCenters, setServiceCenters] = useState([]);
+  const [selectedCluster, setCluster] = useState('');
+  const [file, setFile] = useState(null);
+  const [toast, setToast] = useState(null);
+  const clusterData = Object.keys(clusterServiceCenters);
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 2600);
+  };
+
   useEffect(() => {
     if (selectedCluster) {
-       setServiceCenters(data[selectedCluster])
+      setServiceCenters(clusterServiceCenters[selectedCluster]);
     }
   }, [selectedCluster]);
-
-
-  const [file, setFile] = useState(null);
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
@@ -41,91 +37,84 @@ const EmployeeRegistration = () => {
 
   const onRegistration = async (empObj) => {
     try {
-      const res = await axios.post('https://ashrmservices.onrender.com/owner-api/addemployee', empObj, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+      const res = await axios.post(apiUrl('/owner-api/addemployee'), empObj, {
+        headers: authHeaders(),
       });
 
       if (res.data.message === 'Employee registration success') {
-         // Refresh the employee list
-        reset(); // Reset form fields
+        registrationForm.reset();
       }
-      alert(res.data.message)
+      showToast(res.data.message, res.data.message === 'Employee registration success' ? "success" : "error");
     } catch (error) {
-      alert('Error registering employee:', error);
+      showToast('Error registering employee', "error");
     }
   };
 
   async function handleFileUpload() {
-    if (!file){
-      alert("Please select a file");
+    if (!file) {
+      showToast("Please select a file", "error");
       return;
-    } 
-  
+    }
+
     const reader = new FileReader();
-  
+
     reader.onload = async (e) => {
       try {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array" });
-  
-        // Read the first sheet
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-  
-        // Convert sheet to array (first row as header)
         const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-  
+
         if (rows.length < 2) {
-          console.warn("Empty or invalid file structure.");
+          showToast("Empty or invalid file structure", "error");
           return;
         }
-  
-        // Extract headers from the first row
+
         const headers = rows[0];
-  
-        // Map rows to objects using headers as keys
         const formattedData = rows.slice(1).map((row) => {
           let obj = {};
           headers.forEach((key, index) => {
             obj[key] = row[index] || "";
           });
-          obj['status']="Active";
+          obj['status'] = "Active";
           return obj;
         });
-  
-        // Send data to the API
+
         const result = await axios.post(
-          "https://ashrmservices.onrender.com/admin-api/employees",
+          apiUrl("/admin-api/employees"),
           formattedData
         );
-        alert(result.data.message);
+        showToast(result.data.message);
       } catch (error) {
-        console.error("Error processing file:", error);
+        showToast("Error processing file", "error");
       }
     };
-  
+
     reader.readAsArrayBuffer(file);
   }
 
   return (
-    < div className='  bg-secondary-subtle'>
-        <div className=" d-flex justify-content-center align-items-center min-vh-100 ">
-        <div className="card shadow-lg p-4 border-0 rounded">
-      <form onSubmit={registrationForm.handleSubmit(onRegistration)} className="bg-blue p-4 rounded shadow-lg w-100">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-             <h2 className="text-center mb-4">Register a New Employee</h2>
-            
-              <button
-                className="btn btn-danger"
-                onClick={() => navigate(-1)}
-              >
-                ✕
-              </button>
+    <div className="content-area mx-auto">
+      <PageHeader
+        title="Register a New Employee"
+        subtitle="Add personal, bank, location, and salary details for a new employee."
+        actions={
+          <button className="app-button app-button--danger" onClick={() => navigate(-1)}>
+            Close
+          </button>
+        }
+      />
+
+      <form onSubmit={registrationForm.handleSubmit(onRegistration)} className="form-panel">
+        <div className="d-flex align-items-center gap-2 mb-4">
+          <div className="stat-card__icon"><UserPlus size={20} /></div>
+          <div>
+            <h3 className="mb-1">Employee Information</h3>
+            <p className="text-muted mb-0">Fields and validation rules match the existing registration flow.</p>
           </div>
-        
-        {/* Employee Details */}
+        </div>
+
         <div className="row g-3">
           <div className="col-md-6">
             <label className="form-label">Employee ID</label>
@@ -149,11 +138,10 @@ const EmployeeRegistration = () => {
           </div>
           <div className="col-md-6">
             <label className="form-label">Aadhar Number</label>
-            <input type="number" className="form-control" placeholder="Enter Aadhar Number" maxLength={12}  {...registrationForm.register("aadhar", { required: "Aadhar number is required" ,pattern: {
-                value: /^[0-9]{12}$/,
-                 message: "Aadhar number must be exactly 12 digits"
-              }
-              })} />
+            <input type="number" className="form-control" placeholder="Enter Aadhar Number" maxLength={12} {...registrationForm.register("aadhar", { required: "Aadhar number is required", pattern: {
+              value: /^[0-9]{12}$/,
+              message: "Aadhar number must be exactly 12 digits"
+            }})} />
             {errors.aadhar && <div className="text-danger">{errors.aadhar.message}</div>}
           </div>
           <div className="col-md-6">
@@ -162,8 +150,7 @@ const EmployeeRegistration = () => {
             {errors.pan && <div className="text-danger">{errors.pan.message}</div>}
           </div>
         </div>
-        
-        {/* Account Details */}
+
         <fieldset className="border p-3 mt-4 rounded">
           <legend className="w-auto px-2">Account Details</legend>
           <div className="row g-3">
@@ -184,41 +171,36 @@ const EmployeeRegistration = () => {
             </div>
           </div>
         </fieldset>
-        
-        {/* Dropdowns */}
+
         <div className="row g-3 mt-3">
-
           <div className="col-md-6">
-          <label className="form-label">Select Cluster:</label>
-                <select className="form-select" {...registrationForm.register("cluster")} onChange={(e) => setCluster(e.target.value)} required
-                > 
-                  <option value="" selected disabled>-- Select a Cluster --</option>
-                  {clusterData.map((clusterName, index) => {
-                    return (
-                      <option key={index} value={clusterName}>
-                        {clusterName}
-                      </option>
-                    );
-                  })}
-                </select>
+            <label className="form-label">Select Cluster</label>
+            <select className="form-select" {...registrationForm.register("cluster")} onChange={(e) => setCluster(e.target.value)} required>
+              <option value="" disabled>-- Select a Cluster --</option>
+              {clusterData.map((clusterName, index) => (
+                <option key={index} value={clusterName}>
+                  {clusterName}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="col-md-6">
-          <label className="form-label">Select Service Center:</label>
-                <select className="form-select" {...registrationForm.register("serviceCenter")} required disabled={!serviceCenters.length}>
-                  <option value="" selected disabled>-- Select a Service Center --</option>
-                  {serviceCenters.map((serviceCenter, index) => (
-                    <option key={index} value={serviceCenter}>
-                      {serviceCenter}
-                    </option>
-                  ))}
-                </select>
+            <label className="form-label">Select Service Center</label>
+            <select className="form-select" {...registrationForm.register("serviceCenter")} required disabled={!serviceCenters.length}>
+              <option value="" disabled>-- Select a Service Center --</option>
+              {serviceCenters.map((serviceCenter, index) => (
+                <option key={index} value={serviceCenter}>
+                  {serviceCenter}
+                </option>
+              ))}
+            </select>
           </div>
-          
+
           <div className="col-md-6">
             <label className="form-label">Type</label>
             <select className="form-select" {...registrationForm.register("type", { required: "Type is required" })}>
-              <option value="" disabled selected>Select Type</option>
+              <option value="" disabled>Select Type</option>
               <option value="hk">HK</option>
               <option value="dlv">DLV</option>
               <option value="deo">DEO</option>
@@ -235,86 +217,53 @@ const EmployeeRegistration = () => {
             {errors.basic && <div className="text-danger">{errors.basic.message}</div>}
           </div>
           <div className="col-md-3">
-              <label className="form-label">PF</label>
-              <div className="d-flex gap-3">
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    value="yes"
-                    {...registrationForm.register("pf", { required: "PF selection is required" })}
-                  />
-                  <label className="form-check-label">Yes</label>
-                </div>
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    value="no"
-                    {...registrationForm.register("pf", { required: "PF selection is required" })}
-                  />
-                  <label className="form-check-label">No</label>
-                </div>
+            <label className="form-label">PF</label>
+            <div className="d-flex gap-3">
+              <div className="form-check">
+                <input className="form-check-input" type="radio" value="yes" {...registrationForm.register("pf", { required: "PF selection is required" })} />
+                <label className="form-check-label">Yes</label>
               </div>
-              {errors.pf && <div className="text-danger">{errors.pf.message}</div>}
+              <div className="form-check">
+                <input className="form-check-input" type="radio" value="no" {...registrationForm.register("pf", { required: "PF selection is required" })} />
+                <label className="form-check-label">No</label>
+              </div>
             </div>
+            {errors.pf && <div className="text-danger">{errors.pf.message}</div>}
+          </div>
 
-            <div className="col-md-3">
-              <label className="form-label">ESIC</label>
-              <div className="d-flex gap-3">
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    value="yes"
-                    {...registrationForm.register("esic", { required: "ESIC selection is required" })}
-                  />
-                  <label className="form-check-label">Yes</label>
-                </div>
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    value="no"
-                    {...registrationForm.register("esic", { required: "ESIC selection is required" })}
-                  />
-                  <label className="form-check-label">No</label>
-                </div>
+          <div className="col-md-3">
+            <label className="form-label">ESIC</label>
+            <div className="d-flex gap-3">
+              <div className="form-check">
+                <input className="form-check-input" type="radio" value="yes" {...registrationForm.register("esic", { required: "ESIC selection is required" })} />
+                <label className="form-check-label">Yes</label>
               </div>
-              {errors.esic && <div className="text-danger">{errors.esic.message}</div>}
+              <div className="form-check">
+                <input className="form-check-input" type="radio" value="no" {...registrationForm.register("esic", { required: "ESIC selection is required" })} />
+                <label className="form-check-label">No</label>
+              </div>
             </div>
+            {errors.esic && <div className="text-danger">{errors.esic.message}</div>}
+          </div>
         </div>
-        
-        {/* Submit Button */}
-        <button type="submit" className="btn btn-primary w-100  m-auto mt-4 ">Register</button>
+
+        <button type="submit" className="app-button app-button--primary text-white w-100 mt-4">Register Employee</button>
       </form>
-    </div>
-    </div>
-    <div className="d-flex justify-content-center align-items-center vh-100" >
-            <div
-          className="border border-dashed p-4 text-center bg-white rounded-lg shadow-sm d-flex flex-column align-items-center justify-content-center"
-          style={{ width: "400px", Height: "250px", borderColor: "#6c757d" }}
-        >
-          <h4 className="mb-3 text-secondary">Upload File</h4>
 
-          <label
-            className="btn btn-outline-primary btn-lg rounded-pill px-4 py-2 mb-3"
-            style={{ cursor: "pointer", transition: "0.3s" }}
-          >
-            📂 Select File
-            <input type="file" accept=".xlsx, .xls" className="d-none" onChange={handleFileChange} />
-          </label>
-
-          <button
-            className="btn btn-primary rounded-pill px-4 py-2"
-            onClick={handleFileUpload}
-            style={{ transition: "0.3s" }}
-          >
-            🚀 Upload
-          </button>
-        </div>
-      
-    </div>
+      <div className="upload-panel">
+        <Upload size={30} className="text-primary mb-2" />
+        <h4 className="mb-2">Upload Employees</h4>
+        <p className="text-muted">Upload an Excel file to bulk import employees.</p>
+        <label className="app-button app-button--soft mb-3">
+          Select File
+          <input type="file" accept=".xlsx, .xls" className="d-none" onChange={handleFileChange} />
+        </label>
+        {file && <p className="text-muted mb-3">{file.name}</p>}
+        <button className="app-button app-button--primary text-white" onClick={handleFileUpload}>
+          Upload
+        </button>
+      </div>
+      <Toast message={toast?.message} type={toast?.type} />
     </div>
   )
 }

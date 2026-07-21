@@ -2,18 +2,18 @@ import React, { useState  } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios'
+import { apiUrl } from "../../config/api";
 const OperatorRegister = () => {
   let [msg, setMsg] = useState("");
   let {
         register,handleSubmit,
-        formState: { errors },
       } = useForm();
 
   const navigate = useNavigate();
 
   async function onRegister(operatorCred){
 
-    let result= await axios.post("https://ashrmservices.onrender.com/operator-api/register",operatorCred)
+    let result= await axios.post(apiUrl("/operator-api/register"),operatorCred)
     if(result.data.message==="register success"){
       navigate('/operatorLogin');
     }else{

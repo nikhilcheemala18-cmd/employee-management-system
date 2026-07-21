@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { apiUrl } from "../../config/api";
+import EmptyState from "../ui/EmptyState";
+import PageHeader from "../ui/PageHeader";
+import StatusBadge from "../ui/StatusBadge";
+import Toast from "../ui/Toast";
 
 const EmployeeProfile = () => {
   const location = useLocation();
@@ -10,208 +15,137 @@ const EmployeeProfile = () => {
   const [formData, setFormData] = useState({ ...employee });
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 2600);
+  };
 
   if (!employee) {
-    return <p className="text-center text-danger">Employee not found</p>;
+    return (
+      <div className="content-area mx-auto">
+        <EmptyState title="Employee not found" message="Return to employee details and open a profile again." />
+      </div>
+    );
   }
 
-  // Handle input changes
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Save updated employee details to database
   const handleSave = async () => {
     setLoading(true);
     try {
-      const response = await axios.put(
-        `https://ashrmservices.onrender.com/owner-api/employees/${formData.id}`, // API Endpoint
+      await axios.put(
+        apiUrl(`/owner-api/employees/${formData.id}`),
         formData
       );
-      setMessage("Employee details updated successfully!");
+      showToast("Employee details updated successfully");
       setIsEditing(false);
     } catch (error) {
-      setMessage("Error updating employee details. Please try again.");
+      showToast("Error updating employee details. Please try again.", "error");
     }
     setLoading(false);
   };
 
   return (
-    <div className="m-2">
-      <div className="card shadow-lg">
-        <div className="card-header bg-primary text-white text-center">
-          <h3>Employee Profile</h3>
-        </div>
-        <div className="card-body">
-          {message && <div className="alert alert-info">{message}</div>}
+    <div className="content-area mx-auto">
+      <PageHeader
+        title="Employee Profile"
+        subtitle={`${formData.name || "Employee"} - ${formData.id || ""}`}
+        actions={
+          <>
+            <StatusBadge status={formData.status} />
+            <button className="app-button app-button--danger" onClick={() => navigate(-1)}>Go Back</button>
+          </>
+        }
+      />
 
-          {/* Personal Details */}
-          <h5 className="text-primary">Personal Details</h5>
-          <div className="row">
-            <div className="col-md-6">
-              <strong>Name:</strong>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="form-control"
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="col-md-6">
-              <strong>Email:</strong>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="form-control"
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="col-md-6">
-              <strong>Aadhar:</strong>
-              <input
-                type="text"
-                name="aadhar"
-                value={formData.aadhar}
-                onChange={handleChange}
-                className="form-control"
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="col-md-6">
-              <strong>PAN:</strong>
-              <input
-                type="text"
-                name="pan"
-                value={formData.pan}
-                onChange={handleChange}
-                className="form-control"
-                disabled={!isEditing}
-              />
-            </div>
+      <div className="form-panel">
+        <section className="mb-4">
+          <h5 className="text-primary mb-3">Personal Details</h5>
+          <div className="profile-grid">
+            <label>
+              <strong>Name</strong>
+              <input type="text" name="name" value={formData.name} onChange={handleChange} className="form-control mt-1" disabled={!isEditing} />
+            </label>
+            <label>
+              <strong>Email</strong>
+              <input type="email" name="email" value={formData.email} onChange={handleChange} className="form-control mt-1" disabled={!isEditing} />
+            </label>
+            <label>
+              <strong>Aadhar</strong>
+              <input type="text" name="aadhar" value={formData.aadhar} onChange={handleChange} className="form-control mt-1" disabled={!isEditing} />
+            </label>
+            <label>
+              <strong>PAN</strong>
+              <input type="text" name="pan" value={formData.pan} onChange={handleChange} className="form-control mt-1" disabled={!isEditing} />
+            </label>
           </div>
-          <hr />
+        </section>
 
-          {/* Employment Details */}
-          <h5 className="text-primary">Employment Details</h5>
-          <div className="row">
-            <div className="col-md-6">
-              <strong>Cluster:</strong>
-              <input
-                type="text"
-                name="cluster"
-                value={formData.cluster}
-                onChange={handleChange}
-                className="form-control"
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="col-md-6">
-              <strong>Service Center:</strong>
-              <input
-                type="text"
-                name="serviceCenter"
-                value={formData.serviceCenter}
-                onChange={handleChange}
-                className="form-control"
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="col-md-6">
-              <strong>Daily Wage:</strong>
-              <input
-                type="number"
-                name="dailyWage"
-                value={formData.dailyWage}
-                onChange={handleChange}
-                className="form-control"
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="col-md-6">
+        <section className="mb-4">
+          <h5 className="text-primary mb-3">Employment Details</h5>
+          <div className="profile-grid">
+            <label>
+              <strong>Cluster</strong>
+              <input type="text" name="cluster" value={formData.cluster} onChange={handleChange} className="form-control mt-1" disabled={!isEditing} />
+            </label>
+            <label>
+              <strong>Service Center</strong>
+              <input type="text" name="serviceCenter" value={formData.serviceCenter} onChange={handleChange} className="form-control mt-1" disabled={!isEditing} />
+            </label>
+            <label>
+              <strong>Daily Wage</strong>
+              <input type="number" name="dailyWage" value={formData.dailyWage} onChange={handleChange} className="form-control mt-1" disabled={!isEditing} />
+            </label>
+            <label>
               <strong>Basic</strong>
-              <input
-                type="number"
-                name="basic"
-                value={formData.basic}
-                onChange={handleChange}
-                className="form-control"
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="col-md-6">
-              <strong>Status:</strong>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                className="form-control"
-                disabled={!isEditing}
-              >
+              <input type="number" name="basic" value={formData.basic} onChange={handleChange} className="form-control mt-1" disabled={!isEditing} />
+            </label>
+            <label>
+              <strong>Status</strong>
+              <select name="status" value={formData.status} onChange={handleChange} className="form-select mt-1" disabled={!isEditing}>
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
               </select>
-            </div>
+            </label>
           </div>
-          <hr />
+        </section>
 
-          {/* Bank Details */}
-          <h5 className="text-primary">Bank Details</h5>
-          <div className="row">
-            <div className="col-md-6">
-              <strong>Account Number:</strong>
-              <input
-                type="text"
-                name="accountNumber"
-                value={formData.accountNumber}
-                onChange={handleChange}
-                className="form-control"
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="col-md-6">
-              <strong>Bank Name:</strong>
-              <input
-                type="text"
-                name="bankName"
-                value={formData.bankName}
-                onChange={handleChange}
-                className="form-control"
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="col-md-6">
-              <strong>IFSC Code:</strong>
-              <input
-                type="text"
-                name="ifsc"
-                value={formData.ifsc}
-                onChange={handleChange}
-                className="form-control"
-                disabled={!isEditing}
-              />
-            </div>
+        <section>
+          <h5 className="text-primary mb-3">Bank Details</h5>
+          <div className="profile-grid">
+            <label>
+              <strong>Account Number</strong>
+              <input type="text" name="accountNumber" value={formData.accountNumber} onChange={handleChange} className="form-control mt-1" disabled={!isEditing} />
+            </label>
+            <label>
+              <strong>Bank Name</strong>
+              <input type="text" name="bankName" value={formData.bankName} onChange={handleChange} className="form-control mt-1" disabled={!isEditing} />
+            </label>
+            <label>
+              <strong>IFSC Code</strong>
+              <input type="text" name="ifsc" value={formData.ifsc} onChange={handleChange} className="form-control mt-1" disabled={!isEditing} />
+            </label>
           </div>
-        </div>
+        </section>
 
-        <div className="card-footer text-center">
+        <div className="d-flex flex-wrap justify-content-end gap-2 mt-4 pt-4 border-top">
           {!isEditing ? (
-            <button className="btn btn-warning" onClick={() => setIsEditing(true)}>Edit</button>
+            <button className="app-button app-button--soft" onClick={() => setIsEditing(true)}>Edit</button>
           ) : (
             <>
-              <button className="btn btn-success" onClick={handleSave} disabled={loading}>
+              <button className="app-button app-button--primary text-white" onClick={handleSave} disabled={loading}>
                 {loading ? "Saving..." : "Save Changes"}
               </button>
-              <button className="btn btn-secondary ms-2" onClick={() => setIsEditing(false)}>Cancel</button>
+              <button className="app-button" onClick={() => setIsEditing(false)}>Cancel</button>
             </>
           )}
-          <button className="btn btn-danger ms-3" onClick={() => navigate(-1)}>Go Back</button>
         </div>
       </div>
+      <Toast message={toast?.message} type={toast?.type} />
     </div>
   );
 };

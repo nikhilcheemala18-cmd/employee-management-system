@@ -9,9 +9,9 @@ import './OwnerLogin.css';
 
 const OwnerLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit } = useForm();
   
-  const { isPending, currentOwner, loginOwnerStatus, errorOccurred, errMsg } = 
+  const { isPending, loginOwnerStatus, errorOccurred, errMsg } = 
     useSelector((state) => state.ownerLoginReducer);
   
   const dispatch = useDispatch();
@@ -25,7 +25,7 @@ const OwnerLogin = () => {
     if (loginOwnerStatus) {
       navigate("/ownerHome");
     }
-  }, [loginOwnerStatus]);
+  }, [loginOwnerStatus, navigate]);
 
   return (
       <div className="container-fluid">
@@ -122,7 +122,7 @@ const OwnerLogin = () => {
             {/* Additional Links */}
             <div className="text-center mt-4">
               <p className="text-muted mb-0">
-                Need help? <a href="#" className="text-primary fw-bold">Contact Support</a>
+                Need help? <button type="button" className="btn btn-link text-primary fw-bold p-0 align-baseline">Contact Support</button>
               </p>
             </div>
           </div>

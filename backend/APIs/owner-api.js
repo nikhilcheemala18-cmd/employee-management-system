@@ -4,8 +4,6 @@ const ownerApp=exp.Router()
 const jwt=require('jsonwebtoken')
 const bcryptjs = require('bcryptjs')
 const expressAsyncHandler= require('express-async-handler')
-
-const verifyToken = require('../Middlewares/verifyToken')
 require('dotenv').config()
 
 let empCollection
@@ -58,21 +56,17 @@ ownerApp.post('/employeesalarydetails/', async(req,res)=>{
     let month=params.month
     let year=params.year
     const empList = await empCollection.find(query).toArray();
-    // Extract employee IDs
     const empIds = empList.map(emp => emp.id);
 
-    // Fetch attendance records for the given month and year
     const attendanceRecords = await employeeAttendance.find({
         id: { $in: empIds },
         month: parseInt(month, 10),
         year: parseInt(year, 10)
     }).toArray();
-        // Create a map of employee attendance
     const attendanceMap = new Map(attendanceRecords.map(att => [att.id, parseInt(att.noOfPresentDays, 10) || 0]));
-    // Merge attendance data into employee list
     const mergedEmpList = empList.map(emp => ({
         ...emp,
-        daysPresent: attendanceMap.get(emp.id) ?? 0  // Default to 0 if no record found
+        daysPresent: attendanceMap.get(emp.id) ?? 0
     }));
     
     res.send({message : "All the employees ",payload : mergedEmpList}) 
@@ -81,7 +75,6 @@ ownerApp.post('/employeesalarydetails/', async(req,res)=>{
 
 ownerApp.post('/addemployee',async(req,res)=>{
     const newEmployee = req.body;
-    console.log(newEmployee)
     const emp=await empCollection.findOne({id :newEmployee.id})
     if(emp!==null){
         res.send({message:"employee already existed"})

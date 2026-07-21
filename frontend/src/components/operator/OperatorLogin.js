@@ -10,10 +10,9 @@ const OperatorLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   let {
     register, handleSubmit,
-    formState: { errors },
   } = useForm();
 
-  let { isPending, currentOperator, loginOperatorStatus, errorOccurred, errMsg } =
+  let { isPending, loginOperatorStatus, errorOccurred, errMsg } =
     useSelector((state) => state.operatorLoginReducer);
 
   let dispatch = useDispatch();
@@ -28,7 +27,7 @@ const OperatorLogin = () => {
     if (loginOperatorStatus) {
       navigate("/operatorHome");
     }
-  }, [loginOperatorStatus]);
+  }, [loginOperatorStatus, navigate]);
 
   return (
     <div className="container-fluid">

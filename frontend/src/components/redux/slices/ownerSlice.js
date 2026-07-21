@@ -1,19 +1,18 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
+import { apiUrl } from "../../../config/api";
 
-// Thunk for owner login
 export const ownerLoginThunk = createAsyncThunk(
   "owner-login",
   async (ownerCredObj, thunkApi) => {
     try {
       const res = await axios.post(
-        "https://ashrmservices.onrender.com/owner-api/login",
+        apiUrl("/owner-api/login"),
         ownerCredObj
       );
       if (res.data.message === "Login success") {
-        // Store token in localStorage
         localStorage.setItem("token", res.data.token);
-        localStorage.setItem("currentOwner", JSON.stringify(res.data.owner)); // Persist owner data
+        localStorage.setItem("currentOwner", JSON.stringify(res.data.owner));
         return res.data;
       } else {
         return thunkApi.rejectWithValue(res.data.message);
@@ -24,7 +23,6 @@ export const ownerLoginThunk = createAsyncThunk(
   }
 );
 
-// Load initial state from localStorage
 const loadOwnerStateFromLocalStorage = () => {
   const token = localStorage.getItem("token");
   const currentOwner = JSON.parse(localStorage.getItem("currentOwner") || "{}");
@@ -72,8 +70,6 @@ export const ownerSlice = createSlice({
       }),
 });
 
-// Export action creator functions
 export const { resetState } = ownerSlice.actions;
 
-// Export root reducer of this slice
 export default ownerSlice.reducer;
