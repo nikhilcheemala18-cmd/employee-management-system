@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import { apiUrl } from "../../../config/api";
+import { clearAuthSession, getAuthSession, saveAuthSession } from "../../../utils/authSession";
 
 export const operatorLoginThunk = createAsyncThunk(
   "operator-login",
@@ -11,8 +12,7 @@ export const operatorLoginThunk = createAsyncThunk(
         operatorCredObj
       );
       if (res.data.message === "login success") {
-        localStorage.setItem("token", res.data.token);
-        localStorage.setItem("currentOperator", JSON.stringify(res.data.operator));
+        saveAuthSession({ role: "operator", token: res.data.token, user: res.data.operator });
         return res.data;
       } else {
         return thunkApi.rejectWithValue(res.data.message);
@@ -24,12 +24,11 @@ export const operatorLoginThunk = createAsyncThunk(
 );
 
 const loadOperatorStateFromLocalStorage = () => {
-  const token = localStorage.getItem("token");
-  const currentOperator = JSON.parse(localStorage.getItem("currentOperator") || "{}");
+  const session = getAuthSession("operator");
   return {
     isPending: false,
-    loginOperatorStatus: !!token,
-    currentOperator,
+    loginOperatorStatus: Boolean(session),
+    currentOperator: session?.user || {},
     errorOccurred: false,
     errMsg: "",
   };
@@ -45,8 +44,7 @@ export const operatorSlice = createSlice({
       state.loginOperatorStatus = false;
       state.errorOccurred = false;
       state.errMsg = "";
-      localStorage.removeItem("token");
-      localStorage.removeItem("currentOperator");
+      clearAuthSession();
     },
   },
   extraReducers: (builder) =>

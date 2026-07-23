@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
 import { resetState } from '../redux/slices/operatorSlice';
-import { CalendarCheck, LayoutDashboard, Users } from "lucide-react";
+import { CalendarCheck, CalendarDays, Clock3, LayoutDashboard, RefreshCw, UserCheck, Users } from "lucide-react";
 import { apiUrl, authHeaders } from "../../config/api";
 import AppShell from "../ui/AppShell";
 import ConfirmDialog from "../ui/ConfirmDialog";
+import DashboardPanel from "../ui/DashboardPanel";
 import EmptyState from "../ui/EmptyState";
 import PageHeader from "../ui/PageHeader";
 import StatCard from "../ui/StatCard";
@@ -71,7 +72,7 @@ const OperatorHome = () => {
     setAttendance({ ...attendance, [id]: value });
   };
 
-  const submitAttendance = () => {
+  const submitAttendance = async () => {
     const attendanceData = Object.keys(attendance).map((id) => ({
       id: id,
       month: parseInt(month, 10),
@@ -79,10 +80,21 @@ const OperatorHome = () => {
       noOfPresentDays: attendance[id],
     }));
 
-    axios.post(apiUrl('/operator-api/employeeAttendance'), attendanceData).then((res) => {
-      showToast(res.data.message);
-      window.location.reload();
-    });
+    if (!attendanceData.length) {
+      showToast("Please enter at least one attendance value before submitting.", "error");
+      return;
+    }
+
+    try {
+      const res = await axios.post(apiUrl('/operator-api/employeeAttendance'), attendanceData, {
+        headers: authHeaders(),
+      });
+      showToast(res.data.message || "Attendance submitted successfully.");
+      setAttendance({});
+      fetchEmployees();
+    } catch (error) {
+      showToast(error.response?.data?.message || "Attendance submission failed.", "error");
+    }
   };
 
   const handleLogout = () => {
@@ -93,6 +105,13 @@ const OperatorHome = () => {
     dispatch(resetState());
     navigate('/operatorLogin');
   };
+
+  const attendanceEntries = Object.entries(attendance).filter(([, value]) => value !== "" && value !== undefined);
+  const completedEntries = attendanceEntries.length;
+  const totalPresentDays = attendanceEntries.reduce((total, [, value]) => total + (Number(value) || 0), 0);
+  const averagePresentDays = completedEntries ? (totalPresentDays / completedEntries).toFixed(1) : "0";
+  const completionRate = empList.length ? Math.round((completedEntries / empList.length) * 100) : 0;
+  const selectedMonthName = new Date(0, Number(month) - 1).toLocaleString("default", { month: "long" });
 
   const renderDashboard = () => (
     <>
@@ -118,10 +137,14 @@ const OperatorHome = () => {
     <>
       <PageHeader
         title="Employee Attendance"
-        subtitle="Enter monthly present days for active employees in your service center."
+        subtitle={`Record and review present days for ${selectedMonthName} ${year} at ${currentOperator?.serviceCenter || "your service center"}.`}
       />
 
-      <div className="form-panel mb-4">
+      <div className="attendance-filter-panel">
+        <div className="attendance-filter-panel__heading">
+          <div className="stat-card__icon"><CalendarDays size={20} /></div>
+          <div><h3>Attendance period</h3><p>Choose a month, then enter present days for each employee.</p></div>
+        </div>
         <div className="row g-3 align-items-end">
           <div className="col-md-3">
             <label className="form-label">Select Year</label>
@@ -146,60 +169,94 @@ const OperatorHome = () => {
 
           <div className="col-md-3">
             <button type="button" onClick={fetchEmployees} className="app-button app-button--soft w-100">
-              Refresh Employees
+              <RefreshCw size={17} /> Refresh employees
             </button>
           </div>
         </div>
       </div>
 
+      <div className="stats-grid attendance-stats-grid">
+        <StatCard icon={Users} label="Employees loaded" value={empList.length} />
+        <StatCard icon={UserCheck} label="Entries completed" value={`${completedEntries}/${empList.length}`} />
+        <StatCard icon={CalendarCheck} label="Present days entered" value={totalPresentDays} />
+        <StatCard icon={Clock3} label="Average present days" value={averagePresentDays} />
+      </div>
+
+      <div className="dashboard-grid dashboard-grid--employee">
+        <DashboardPanel eyebrow="Attendance summary" title="Monthly completion" subtitle={`Progress for ${selectedMonthName} ${year}.`}>
+          <div className="attendance-progress">
+            <div className="attendance-progress__value"><strong>{completionRate}%</strong><span>completed</span></div>
+            <div className="attendance-progress__track" aria-label={`${completionRate}% attendance entries completed`}><span style={{ width: `${completionRate}%` }} /></div>
+            <p>{completedEntries ? `${completedEntries} employee record${completedEntries === 1 ? " has" : "s have"} been updated for this period.` : "Start entering present days to build this month's attendance summary."}</p>
+          </div>
+        </DashboardPanel>
+        <DashboardPanel eyebrow="Daily entry snapshot" title="Today's input summary" subtitle="A live summary of the values entered in this session.">
+          <div className="attendance-snapshot">
+            <div><span>Updated employees</span><strong>{completedEntries}</strong></div>
+            <div><span>Pending entries</span><strong>{Math.max(empList.length - completedEntries, 0)}</strong></div>
+            <div><span>Service center</span><strong>{currentOperator?.serviceCenter || "-"}</strong></div>
+          </div>
+        </DashboardPanel>
+      </div>
+
       {empList.length === 0 ? (
-        <EmptyState title="No employees loaded" message="Refresh employees or check the assigned service center." />
+        <EmptyState title="No active employees found" message="Refresh the directory, or confirm that employees are assigned to your service center." />
       ) : (
-        <div className="table-shell">
+        <section className="attendance-table-shell">
+          <div className="attendance-table-shell__header">
+            <div><p>Employee register</p><h3>Enter monthly present days</h3></div>
+            <span>{selectedMonthName} {year}</span>
+          </div>
           <div className="table-scroll">
-            <table className="table table-hover text-center">
+            <table className="table table-hover attendance-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>ID</th>
-                  <th>Type</th>
-                  <th>Attendance</th>
-                  <th>Profile</th>
+                  <th>Employee</th>
+                  <th>Department</th>
+                  <th>Role</th>
+                  <th>Present days</th>
+                  <th>Entry status</th>
+                  <th aria-label="Employee profile" />
                 </tr>
               </thead>
               <tbody>
-                {empList.map((emp) => (
-                  <tr key={emp.id}>
-                    <td>{emp.name}</td>
-                    <td>{emp.id}</td>
-                    <td>{emp.type}</td>
+                {empList.map((emp) => {
+                  const hasEntry = attendance[emp.id] !== "" && attendance[emp.id] !== undefined;
+                  return (
+                  <tr key={emp.id} className={hasEntry ? "attendance-table__row--complete" : ""}>
+                    <td><div className="attendance-employee"><span>{emp.name?.slice(0, 1) || "E"}</span><div><strong>{emp.name}</strong><small>{emp.id}</small></div></div></td>
+                    <td>{emp.cluster || "Operations"}<small>{emp.serviceCenter || "Not assigned"}</small></td>
+                    <td><span className="attendance-role">{emp.type?.toUpperCase() || "EMPLOYEE"}</span></td>
                     <td>
                       <input
                         type="number"
-                        className="form-control m-auto"
+                        className="form-control attendance-input"
                         min="0"
-                        value={attendance[emp.id] || ""}
+                        max="31"
+                        value={attendance[emp.id] ?? ""}
                         onChange={(e) => handleAttendanceChange(emp.id, e.target.value)}
-                        placeholder="Enter attendance"
-                        style={{ width: "180px" }}
+                        placeholder="0"
+                        aria-label={`Present days for ${emp.name}`}
                       />
                     </td>
-                    <td>
+                    <td><span className={`attendance-entry-status ${hasEntry ? "attendance-entry-status--complete" : ""}`}>{hasEntry ? "Recorded" : "Pending"}</span></td>
+                    <td className="text-end">
                       <button className="app-button app-button--soft" onClick={() => setSelectedEmployee(emp)}>
                         Profile
                       </button>
                     </td>
-                  </tr>
-                ))}
+                  </tr>);
+                })}
               </tbody>
             </table>
           </div>
-          <div className="p-3 border-top">
-            <button onClick={submitAttendance} className="app-button app-button--primary text-white">
-              Submit Attendance
+          <div className="attendance-table-shell__footer">
+            <p><strong>{completedEntries} entries ready</strong><span>Submit the attendance values currently entered for this period.</span></p>
+            <button onClick={submitAttendance} className="app-button app-button--primary text-white" disabled={!completedEntries}>
+              Submit attendance
             </button>
           </div>
-        </div>
+        </section>
       )}
 
       {selectedEmployee && (

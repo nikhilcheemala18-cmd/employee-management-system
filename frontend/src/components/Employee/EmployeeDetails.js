@@ -1,21 +1,26 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
+import { Building2, CircleOff, UserCheck, Users } from "lucide-react";
 import { apiUrl, authHeaders } from "../../config/api";
 import { clusterServiceCenters } from "../../constants/locationData";
+import DashboardPanel from "../ui/DashboardPanel";
+import EmployeeCard from "../ui/EmployeeCard";
 import EmptyState from "../ui/EmptyState";
+import MetricBarChart from "../ui/MetricBarChart";
 import PageHeader from "../ui/PageHeader";
-import StatusBadge from "../ui/StatusBadge";
+import StatCard from "../ui/StatCard";
+import { chartItems, workforceSummary } from "../../utils/dashboardMetrics";
 
 function EmployeeDetails() {
   const navigate = useNavigate();
   const [empList, setEmpList] = useState(JSON.parse(localStorage.getItem('empList')) || []);
   const detailsForm = useForm();
-  const tableRef = useRef(null);
   const [serviceCenters, setServiceCenters] = useState([]);
   const [selectedCluster, setCluster] = useState('');
   const clusterData = Object.keys(clusterServiceCenters);
+  const summary = workforceSummary(empList);
 
   useEffect(() => {
     if (selectedCluster) {
@@ -41,14 +46,32 @@ function EmployeeDetails() {
   return (
     <div className="content-area mx-auto">
       <PageHeader
-        title="Employee Details"
-        subtitle="Filter employees by cluster, service center, type, and status."
+        title="Employee Dashboard"
+        subtitle="Monitor the workforce, then filter down to the employee records you need."
         actions={
           <button className="app-button app-button--danger" onClick={() => navigate(-1)}>
             Close
           </button>
         }
       />
+
+      <div className="stats-grid employee-dashboard-stats">
+        <StatCard icon={Users} label="Employees loaded" value={summary.total} />
+        <StatCard icon={UserCheck} label="Active employees" value={summary.active} />
+        <StatCard icon={CircleOff} label="Inactive employees" value={summary.inactive} />
+        <StatCard icon={Building2} label="Service centers" value={new Set(empList.map((employee) => employee.serviceCenter || "Not assigned")).size} />
+      </div>
+
+      <div className="dashboard-grid dashboard-grid--employee">
+        <MetricBarChart title="Team composition" subtitle="Employee count grouped by role." items={chartItems(empList, "type")} />
+        <DashboardPanel eyebrow="Employee records" title="Workforce status" subtitle="Active employees are included in attendance and salary workflows.">
+          <div className="workforce-status">
+            <div><span className="workforce-status__dot workforce-status__dot--active" /><strong>{summary.active}</strong><small>Active</small></div>
+            <div><span className="workforce-status__dot workforce-status__dot--inactive" /><strong>{summary.inactive}</strong><small>Inactive</small></div>
+            <p>Use the filters below to review a specific cluster, service center, employment type, or status.</p>
+          </div>
+        </DashboardPanel>
+      </div>
 
       <form className="form-panel" onSubmit={detailsForm.handleSubmit(fetchEmployees)}>
         <div className="row g-3 align-items-end">
@@ -104,43 +127,24 @@ function EmployeeDetails() {
       </form>
 
       {empList.length > 0 ? (
-        <div className="table-shell mt-4">
-          <div className="table-scroll">
-            <table ref={tableRef} className="table table-hover text-center" style={{ tableLayout: "fixed", width: "100%" }}>
-              <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
-                <tr>
-                  <th style={{ width: "150px" }}>Name</th>
-                  <th style={{ width: "150px" }}>ID</th>
-                  <th style={{ width: "150px" }}>Cluster</th>
-                  <th style={{ width: "150px" }}>Service Center</th>
-                  <th style={{ width: "150px" }}>Type</th>
-                  <th style={{ width: "150px" }}>Status</th>
-                  <th className="sticky-col" style={{ position: 'sticky', right: 0, width: "150px" }}>Profile</th>
-                </tr>
-              </thead>
-              <tbody>
-                {empList.map((emp) => (
-                  <tr key={emp.id}>
-                    <td style={{ width: "150px" }}>{emp.name}</td>
-                    <td style={{ width: "150px" }}>{emp.id}</td>
-                    <td style={{ width: "150px" }}>{emp.cluster}</td>
-                    <td style={{ width: "150px" }}>{emp.serviceCenter}</td>
-                    <td style={{ width: "150px" }}>{emp.type}</td>
-                    <td style={{ width: "150px" }}><StatusBadge status={emp.status} /></td>
-                    <td className="sticky-col" style={{ position: 'sticky', right: 0 }}>
-                      <button
-                        className="app-button app-button--soft"
-                        onClick={() => navigate(`/employee/${emp.id}`, { state: emp })}
-                      >
-                        Profile
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <section className="employee-cards-section mt-4" aria-label="Employee cards">
+          <div className="employee-cards-section__header">
+            <div>
+              <p>Employee directory</p>
+              <h2>{empList.length} employee{empList.length === 1 ? "" : "s"} found</h2>
+            </div>
+            <span>Choose an employee to view or update their profile.</span>
           </div>
-        </div>
+          <div className="employee-card-grid">
+            {empList.map((emp) => (
+              <EmployeeCard
+                key={emp.id}
+                employee={emp}
+                onViewProfile={(employee) => navigate(`/employee/${employee.id}`, { state: employee })}
+              />
+            ))}
+          </div>
+        </section>
       ) : (
         <div className="mt-4">
           <EmptyState title="No employees loaded" message="Choose filters and fetch details to view employee records." />

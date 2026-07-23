@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { operatorLoginThunk } from '../redux/slices/operatorSlice';
 import { useSelector, useDispatch } from 'react-redux'
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -17,6 +17,7 @@ const OperatorLogin = () => {
 
   let dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
 
   async function handleLogin(empobj) {
     // Add login logic here
@@ -25,9 +26,9 @@ const OperatorLogin = () => {
 
   useEffect(() => {
     if (loginOperatorStatus) {
-      navigate("/operatorHome");
+      navigate(location.state?.from || "/operatorHome", { replace: true });
     }
-  }, [loginOperatorStatus, navigate]);
+  }, [loginOperatorStatus, navigate, location.state?.from]);
 
   return (
     <div className="container-fluid">
@@ -87,9 +88,9 @@ const OperatorLogin = () => {
                   ) : 'Login'}
                 </button>
               </form>
-              {errorOccurred === true && (
+              {(errorOccurred || location.state?.authMessage) && (
                 <div className="alert alert-danger text-center py-2 mb-0">
-                  {errMsg}
+                  {errMsg || location.state?.authMessage}
                 </div>
               )}
               <div className="text-center mt-4">

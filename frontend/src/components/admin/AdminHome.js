@@ -1,15 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import axios from "axios";
 import "./AdminHome.css";
-import { ClipboardList, LayoutDashboard, UserPlus, Users } from "lucide-react";
-import { apiUrl } from "../../config/api";
+import { CalendarCheck, ClipboardList, LayoutDashboard, UserCheck, UserPlus, Users } from "lucide-react";
+import { apiUrl, authHeaders } from "../../config/api";
 import AppShell from "../ui/AppShell";
 import EmptyState from "../ui/EmptyState";
 import PageHeader from "../ui/PageHeader";
 import StatCard from "../ui/StatCard";
 import Toast from "../ui/Toast";
+import DashboardPanel from "../ui/DashboardPanel";
+import MetricBarChart from "../ui/MetricBarChart";
+import { chartItems, workforceSummary } from "../../utils/dashboardMetrics";
+import { clearAuthSession } from "../../utils/authSession";
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -25,6 +29,8 @@ const AdminHome = () => {
   const navigate = useNavigate();
   const { register, handleSubmit, reset } = useForm();
   const [ownersList, setOwnersList] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
   const showToast = (message, type = "success") => {
@@ -35,7 +41,8 @@ const AdminHome = () => {
   async function onRegistration(ownerObj) {
     let result = await axios.post(
       apiUrl("/admin-api/ownerregistration"),
-      ownerObj
+      ownerObj,
+      { headers: authHeaders() }
     );
 
     if (result.data.message === "owner created") {
@@ -46,19 +53,44 @@ const AdminHome = () => {
     }
   }
 
-  async function getOwners() {
-    let res = await axios.get(apiUrl("/admin-api/owners"));
-    setOwnersList(res.data.payload);
-  }
+  const getOwners = useCallback(async () => {
+    try {
+      const res = await axios.get(apiUrl("/admin-api/owners"), { headers: authHeaders() });
+      setOwnersList(res.data.payload || []);
+    } catch (error) {
+      showToast("Unable to load owner records", "error");
+    }
+  }, []);
+
+  const getDashboardData = useCallback(async () => {
+    setDashboardLoading(true);
+    try {
+      const [ownersResponse, employeesResponse] = await Promise.all([
+        axios.get(apiUrl("/admin-api/owners"), { headers: authHeaders() }),
+        axios.post(apiUrl("/owner-api/employeedetails/"), { status: "all" }, { headers: authHeaders() }),
+      ]);
+      setOwnersList(ownersResponse.data.payload || []);
+      setEmployees(employeesResponse.data.payload || []);
+    } catch (error) {
+      showToast("Some dashboard data could not be loaded", "error");
+    } finally {
+      setDashboardLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    getDashboardData();
+  }, [getDashboardData]);
 
   useEffect(() => {
     if (activeTab === "owners") {
       getOwners();
     }
-  }, [activeTab]);
+  }, [activeTab, getOwners]);
 
   const handleLogout = () => {
-    navigate("/");
+    clearAuthSession();
+    navigate("/adminLogin", { replace: true });
   };
 
   const handleNavItemClick = (item) => {
@@ -70,25 +102,69 @@ const AdminHome = () => {
     setActiveTab(item.id);
   };
 
-  const renderDashboard = () => (
-    <>
-      <PageHeader
-        title="Admin Dashboard"
-        subtitle="Manage owners and access employee operations from one workspace."
-      />
-      <div className="stats-grid">
-        <StatCard icon={Users} label="Registered owners" value={ownersList.length} />
-        <StatCard icon={UserPlus} label="Owner onboarding" value="Available" />
-        <StatCard icon={ClipboardList} label="Employee tools" value="3" />
-      </div>
-      <div className="page-card p-4">
-        <h3 className="mb-2">Welcome to the Admin Dashboard</h3>
-        <p className="text-muted mb-0">
-          Use the sidebar to register owners, review owner records, or jump into employee registration, details, and salary screens.
-        </p>
-      </div>
-    </>
-  );
+  const renderDashboard = () => {
+    const summary = workforceSummary(employees);
+    const recentEmployees = [...employees]
+      .sort((first, second) => String(second.dateOfJoining || "").localeCompare(String(first.dateOfJoining || "")))
+      .slice(0, 5);
+
+    return (
+      <>
+        <PageHeader
+          title="Admin Dashboard"
+          subtitle="A live view of workforce coverage, owner access, and key HR operations."
+          actions={<button className="app-button app-button--soft" onClick={getDashboardData}>Refresh data</button>}
+        />
+        <div className="stats-grid">
+          <StatCard icon={Users} label="Total workforce" value={dashboardLoading ? "..." : summary.total} />
+          <StatCard icon={UserCheck} label="Active employees" value={dashboardLoading ? "..." : summary.active} />
+          <StatCard icon={UserPlus} label="Registered owners" value={dashboardLoading ? "..." : ownersList.length} />
+        </div>
+
+        <div className="dashboard-grid dashboard-grid--primary">
+          <MetricBarChart
+            title="Workforce by cluster"
+            subtitle="Largest employee groups across service regions."
+            items={chartItems(employees, "cluster")}
+            emptyMessage="Employee data will appear here once records are available."
+          />
+          <DashboardPanel eyebrow="Administration" title="Quick actions" subtitle="Start the most common HR administration tasks.">
+            <div className="quick-actions">
+              <button className="quick-action" onClick={() => setActiveTab("registration")}>
+                <span className="quick-action__icon"><UserPlus size={19} /></span>
+                <span><strong>Add an owner</strong><small>Create portal access for an owner.</small></span>
+              </button>
+              <button className="quick-action" onClick={() => navigate("/employeeRegistration")}>
+                <span className="quick-action__icon"><Users size={19} /></span>
+                <span><strong>Register employee</strong><small>Add an individual or import a workforce file.</small></span>
+              </button>
+              <button className="quick-action" onClick={() => navigate("/employeeSalaryDetails")}>
+                <span className="quick-action__icon"><CalendarCheck size={19} /></span>
+                <span><strong>Prepare payroll</strong><small>Review monthly attendance-linked wages.</small></span>
+              </button>
+            </div>
+          </DashboardPanel>
+        </div>
+
+        <DashboardPanel
+          className="dashboard-card--table"
+          eyebrow="Latest workforce records"
+          title="Recently added employees"
+          subtitle="A quick operational snapshot of the latest employee records."
+          actions={<button className="app-button app-button--soft" onClick={() => navigate("/employeeDetails")}>View all employees</button>}
+        >
+          {recentEmployees.length ? (
+            <div className="dashboard-table-wrap">
+              <table className="table table-hover dashboard-table">
+                <thead><tr><th>Employee</th><th>Location</th><th>Role</th><th>Status</th></tr></thead>
+                <tbody>{recentEmployees.map((employee) => <tr key={employee.id}><td><strong>{employee.name}</strong><span>{employee.id}</span></td><td>{employee.serviceCenter || "-"}<span>{employee.cluster || "-"}</span></td><td>{String(employee.type || "-").toUpperCase()}</td><td><span className={`status-badge ${employee.status === "Inactive" ? "status-badge--inactive" : "status-badge--active"}`}>{employee.status || "Active"}</span></td></tr>)}</tbody>
+              </table>
+            </div>
+          ) : <p className="dashboard-card__empty">No employee records available yet.</p>}
+        </DashboardPanel>
+      </>
+    );
+  };
 
   const renderRegistration = () => (
     <>

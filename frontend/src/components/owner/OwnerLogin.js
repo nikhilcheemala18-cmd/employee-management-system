@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { ownerLoginThunk } from '../redux/slices/ownerSlice';
 import { useSelector, useDispatch } from 'react-redux';
@@ -16,6 +16,7 @@ const OwnerLogin = () => {
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
 
   async function onLogin(ownerCred) {
     dispatch(ownerLoginThunk(ownerCred));
@@ -23,9 +24,9 @@ const OwnerLogin = () => {
 
   useEffect(() => {
     if (loginOwnerStatus) {
-      navigate("/ownerHome");
+      navigate(location.state?.from || "/ownerHome", { replace: true });
     }
-  }, [loginOwnerStatus, navigate]);
+  }, [loginOwnerStatus, navigate, location.state?.from]);
 
   return (
       <div className="container-fluid">
@@ -110,9 +111,9 @@ const OwnerLogin = () => {
                   </div>
 
                   {/* Error Message */}
-                  {errorOccurred && (
+                  {(errorOccurred || location.state?.authMessage) && (
                     <div className="alert alert-danger text-center py-2" role="alert">
-                      {errMsg}
+                      {errMsg || location.state?.authMessage}
                     </div>
                   )}
                 </form>

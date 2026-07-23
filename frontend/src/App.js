@@ -15,6 +15,7 @@ import EmployeeDetails from './components/Employee/EmployeeDetails';
 import EmployeeSalaryDetails from './components/Employee/EmployeeSalaryDetails';
 import Header from './components/rootlayout/Header';
 import Footer from './components/rootlayout/Footer';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 
 function App() {
   return (
@@ -28,14 +29,19 @@ function App() {
           <Route path="operatorRegister" element={<OperatorRegister />} />
           <Route path="adminLogin" element={<AdminLogin/>}/>
           </Route>
-        <Route path="adminHome" element={<AdminHome/>} />
-        <Route path="ownerHome" element={<OwnerHome/>}>
+        <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+          <Route path="adminHome" element={<AdminHome/>} />
         </Route>
-        <Route path="employeeRegistration" element={<EmployeeRegistration/>} />
-        <Route path="employeeSalaryDetails" element={<EmployeeSalaryDetails/>} />
-        <Route path="employeeDetails" element={<EmployeeDetails/>} />
-        <Route path="operatorHome" element={<OperatorHome/>}/>
-        <Route path="employee/:id" element={<EmployeeProfile/>}/>
+        <Route element={<ProtectedRoute allowedRoles={["owner", "admin"]} />}>
+          <Route path="ownerHome" element={<OwnerHome/>} />
+          <Route path="employeeRegistration" element={<EmployeeRegistration/>} />
+          <Route path="employeeSalaryDetails" element={<EmployeeSalaryDetails/>} />
+          <Route path="employeeDetails" element={<EmployeeDetails/>} />
+          <Route path="employee/:id" element={<EmployeeProfile/>}/>
+        </Route>
+        <Route element={<ProtectedRoute allowedRoles={["operator"]} />}>
+          <Route path="operatorHome" element={<OperatorHome/>}/>
+        </Route>
         
       </Routes>
     </Router>

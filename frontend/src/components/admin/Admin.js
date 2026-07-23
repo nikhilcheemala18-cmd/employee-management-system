@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser, faLock, faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import { saveAdminSession } from "../../utils/authSession";
 
 const AdminLogin = () => {
   const [adminId, setAdminId] = useState("");
@@ -9,6 +10,7 @@ const AdminLogin = () => {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -18,7 +20,8 @@ const AdminLogin = () => {
     const validPassword = "admin@123";
 
     if (adminId === validAdminId && password === validPassword) {
-      navigate("/adminhome");
+      saveAdminSession();
+      navigate(location.state?.from || "/adminHome", { replace: true });
     } else {
       setError("Invalid ID or Password");
     }
@@ -89,9 +92,9 @@ const AdminLogin = () => {
               </form>
 
               {/* Error Message */}
-              {error && (
+              {(error || location.state?.authMessage) && (
                 <div className="alert alert-danger text-center py-2 mb-0">
-                  {error}
+                  {error || location.state?.authMessage}
                 </div>
               )}
 

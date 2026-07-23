@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import { apiUrl } from "../../../config/api";
+import { clearAuthSession, getAuthSession, saveAuthSession } from "../../../utils/authSession";
 
 export const ownerLoginThunk = createAsyncThunk(
   "owner-login",
@@ -11,8 +12,7 @@ export const ownerLoginThunk = createAsyncThunk(
         ownerCredObj
       );
       if (res.data.message === "Login success") {
-        localStorage.setItem("token", res.data.token);
-        localStorage.setItem("currentOwner", JSON.stringify(res.data.owner));
+        saveAuthSession({ role: "owner", token: res.data.token, user: res.data.owner });
         return res.data;
       } else {
         return thunkApi.rejectWithValue(res.data.message);
@@ -24,12 +24,11 @@ export const ownerLoginThunk = createAsyncThunk(
 );
 
 const loadOwnerStateFromLocalStorage = () => {
-  const token = localStorage.getItem("token");
-  const currentOwner = JSON.parse(localStorage.getItem("currentOwner") || "{}");
+  const session = getAuthSession("owner");
   return {
     isPending: false,
-    loginOwnerStatus: !!token,
-    currentOwner,
+    loginOwnerStatus: Boolean(session),
+    currentOwner: session?.user || {},
     errorOccurred: false,
     errMsg: "",
   };
@@ -45,8 +44,7 @@ export const ownerSlice = createSlice({
       state.loginOwnerStatus = false;
       state.errorOccurred = false;
       state.errMsg = "";
-      localStorage.removeItem("token");
-      localStorage.removeItem("currentOwner");
+      clearAuthSession();
     },
   },
   extraReducers: (builder) =>

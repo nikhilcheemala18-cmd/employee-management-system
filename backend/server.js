@@ -1,9 +1,11 @@
 
 const exp = require('express')
+const cors = require('cors')
 const app = exp();
 require('dotenv').config()
-const path=require('path')
+const path = require('path')
 const mongoClient = require('mongodb').MongoClient
+app.use(cors())
 app.use(exp.json())
 
 
