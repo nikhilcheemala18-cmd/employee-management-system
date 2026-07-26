@@ -4,7 +4,10 @@ const ownerApp=exp.Router()
 const jwt=require('jsonwebtoken')
 const bcryptjs = require('bcryptjs')
 const expressAsyncHandler= require('express-async-handler')
+const requireAuth = require('../Middlewares/verifyToken')
 require('dotenv').config()
+
+const BCRYPT_ROUNDS = 10
 
 let empCollection
 let ownerCollection
@@ -23,6 +26,10 @@ ownerApp.use(exp.json())
 ownerApp.post('/login',expressAsyncHandler(async(req,res)=>{
     const ownerCred = req.body;
 
+    if(typeof ownerCred.id!=='string' || typeof ownerCred.password!=='string'){
+        return res.send({message:"Invalid owner id"})
+    }
+
     const dbowner=await ownerCollection.findOne({id :ownerCred.id})
     if(dbowner===null){
         res.send({message:"Invalid owner id"})
@@ -31,16 +38,17 @@ ownerApp.post('/login',expressAsyncHandler(async(req,res)=>{
         if(!status){
             res.send({message:"Invalid password"})
         }else{
-            const signedToken=jwt.sign({id:dbowner.id},process.env.SECRET_KEY
+            const signedToken=jwt.sign({id:dbowner.id,role:'owner'},process.env.SECRET_KEY
                 , {expiresIn:'1d'})
-            res.send({message:"Login success",token:signedToken,owner:dbowner})
+            const {password, ...safeOwner} = dbowner
+            res.send({message:"Login success",token:signedToken,owner:safeOwner})
         }
-        
+
     }
 }))
 
 
-ownerApp.post('/employeesalarydetails/', async(req,res)=>{
+ownerApp.post('/employeesalarydetails/', requireAuth('owner','admin'), async(req,res)=>{
     let params=req.body
     let cluster=params.cluster
     let serviceCenter=params.serviceCenter
@@ -55,7 +63,7 @@ ownerApp.post('/employeesalarydetails/', async(req,res)=>{
 
     let month=params.month
     let year=params.year
-    const empList = await empCollection.find(query).toArray();
+    const empList = await empCollection.find(query).project({password:0}).toArray();
     const empIds = empList.map(emp => emp.id);
 
     const attendanceRecords = await employeeAttendance.find({
@@ -73,7 +81,7 @@ ownerApp.post('/employeesalarydetails/', async(req,res)=>{
 
 })
 
-ownerApp.post('/addemployee',async(req,res)=>{
+ownerApp.post('/addemployee', requireAuth('owner','admin'), async(req,res)=>{
     const newEmployee = req.body;
     const emp=await empCollection.findOne({id :newEmployee.id})
     if(emp!==null){
@@ -87,7 +95,7 @@ ownerApp.post('/addemployee',async(req,res)=>{
 })
 
 
-ownerApp.put('/employees/:id', async (req, res) => {
+ownerApp.put('/employees/:id', requireAuth('owner','admin'), async (req, res) => {
     try {
         const { id } = req.params; // Extract ID from request params
         const updatedEmployee = req.body; // Extract updated data
@@ -104,7 +112,8 @@ ownerApp.put('/employees/:id', async (req, res) => {
             return res.status(404).send({ error: "Employee not found" });
         }
 
-        res.send({ success: true, message: "Employee updated successfully", updatedEmployee: result });
+        const { password, ...safeEmployee } = result;
+        res.send({ success: true, message: "Employee updated successfully", updatedEmployee: safeEmployee });
     } catch (error) {
         console.error("Error updating employee:", error);
         res.status(500).send({ error: "Failed to update employee" });
@@ -112,7 +121,7 @@ ownerApp.put('/employees/:id', async (req, res) => {
 });
 
   
-ownerApp.post('/employeedetails',async(req,res)=>{
+ownerApp.post('/employeedetails', requireAuth('owner','admin'), async(req,res)=>{
     let params=req.body
     let cluster=params.cluster
     let serviceCenter=params.serviceCenter
@@ -126,7 +135,7 @@ ownerApp.post('/employeedetails',async(req,res)=>{
     if (status!="all") query.status = status;
     let month=params.month
     let year=params.year
-    const empList = await empCollection.find(query).toArray();
+    const empList = await empCollection.find(query).project({password:0}).toArray();
     res.send({message : "employee details ",payload : empList})
 })
 

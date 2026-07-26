@@ -21,6 +21,13 @@ function EmployeeSalaryDetails() {
   const [serviceCenters, setServiceCenters] = useState([]);
   const [selectedCluster, setCluster] = useState('');
   const clusterData = Object.keys(clusterServiceCenters);
+  const [unlockCluster, setUnlockCluster] = useState('');
+  const [unlockServiceCenter, setUnlockServiceCenter] = useState('');
+  const [unlockMonth, setUnlockMonth] = useState('');
+  const [unlockYear, setUnlockYear] = useState('');
+  const [unlocking, setUnlocking] = useState(false);
+  const [unlockMessage, setUnlockMessage] = useState('');
+  const unlockServiceCenters = unlockCluster ? clusterServiceCenters[unlockCluster] : [];
 
   useEffect(() => {
     if (selectedCluster) {
@@ -68,6 +75,24 @@ function EmployeeSalaryDetails() {
     saveAs(dataBlob, "employee_data.xlsx");
   };
 
+  const handleUnlock = async (e) => {
+    e.preventDefault();
+    setUnlocking(true);
+    setUnlockMessage('');
+    try {
+      const res = await axios.post(apiUrl('/operator-api/attendance/unlock'), {
+        serviceCenter: unlockServiceCenter,
+        month: parseInt(unlockMonth, 10),
+        year: parseInt(unlockYear, 10),
+      }, { headers: authHeaders() });
+      setUnlockMessage(res.data.message || 'Attendance unlocked.');
+    } catch (error) {
+      setUnlockMessage(error.response?.data?.message || 'Failed to unlock attendance.');
+    } finally {
+      setUnlocking(false);
+    }
+  };
+
   const exportToPDF = () => {
     const doc = new jsPDF({
       orientation: "landscape",
@@ -83,8 +108,8 @@ function EmployeeSalaryDetails() {
     ];
 
     const tableRows = empList.map(emp => {
-      const total_wages = Math.round(emp.dailyWage * emp.daysPresent);
-      const basic = Math.round((emp.basic / 30) * emp.daysPresent);
+      const total_wages = Math.round(emp.dailyWage * (emp.daysPresent || 0));
+      const basic = Math.round((emp.basic / 30) * (emp.daysPresent || 0));
       const others = Math.round(total_wages - basic);
       const pf = Math.round((basic * 12) / 100);
       const esic = Math.round((total_wages * 0.75) / 100);
@@ -189,6 +214,61 @@ function EmployeeSalaryDetails() {
 
         <button type="submit" className="app-button app-button--primary text-white mt-4">Fetch Details</button>
       </form>
+
+      <div className="page-card p-4 mt-4">
+        <h3 className="mb-2">Attendance lock management</h3>
+        <p className="text-muted mb-3">Reopen a finalized month so an operator can correct daily attendance.</p>
+        <form className="row g-3 align-items-end" onSubmit={handleUnlock}>
+          <div className="col-md-3">
+            <label className="form-label">Cluster</label>
+            <select
+              className="form-select"
+              value={unlockCluster}
+              onChange={(e) => { setUnlockCluster(e.target.value); setUnlockServiceCenter(''); }}
+              required
+            >
+              <option value="" disabled>-- Select a Cluster --</option>
+              {clusterData.map((clusterName) => (
+                <option key={clusterName} value={clusterName}>{clusterName}</option>
+              ))}
+            </select>
+          </div>
+          <div className="col-md-3">
+            <label className="form-label">Service Center</label>
+            <select
+              className="form-select"
+              value={unlockServiceCenter}
+              onChange={(e) => setUnlockServiceCenter(e.target.value)}
+              disabled={!unlockServiceCenters.length}
+              required
+            >
+              <option value="" disabled>-- Select a Service Center --</option>
+              {unlockServiceCenters.map((sc) => (
+                <option key={sc} value={sc}>{sc}</option>
+              ))}
+            </select>
+          </div>
+          <div className="col-md-2">
+            <label className="form-label">Month</label>
+            <select className="form-select" value={unlockMonth} onChange={(e) => setUnlockMonth(e.target.value)} required>
+              <option value="" disabled>-- Select a Month --</option>
+              {Array.from({ length: 12 }, (_, i) => new Date(0, i).toLocaleString("default", { month: "long" })).map((m, i) => (
+                <option key={i} value={i + 1}>{m}</option>
+              ))}
+            </select>
+          </div>
+          <div className="col-md-2">
+            <label className="form-label">Year</label>
+            <input type="number" className="form-control" value={unlockYear} onChange={(e) => setUnlockYear(e.target.value)} required />
+          </div>
+          <div className="col-md-2">
+            <button type="submit" className="app-button app-button--primary text-white w-100" disabled={unlocking}>
+              {unlocking ? "Unlocking..." : "Unlock month"}
+            </button>
+          </div>
+        </form>
+        {unlockMessage && <p className="mt-3 mb-0 text-muted">{unlockMessage}</p>}
+      </div>
 
       {empList.length > 0 ? (
         <div className="table-shell mt-4">

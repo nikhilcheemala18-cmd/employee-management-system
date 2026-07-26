@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { apiUrl } from "../../config/api";
+import { apiUrl, authHeaders } from "../../config/api";
 import EmptyState from "../ui/EmptyState";
 import PageHeader from "../ui/PageHeader";
 import StatusBadge from "../ui/StatusBadge";
@@ -39,7 +39,8 @@ const EmployeeProfile = () => {
     try {
       await axios.put(
         apiUrl(`/owner-api/employees/${formData.id}`),
-        formData
+        formData,
+        { headers: authHeaders() }
       );
       showToast("Employee details updated successfully");
       setIsEditing(false);

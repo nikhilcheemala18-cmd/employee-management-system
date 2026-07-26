@@ -1,8 +1,13 @@
 const TOKEN_KEY = "token";
 const ROLE_KEY = "authRole";
-const ADMIN_SESSION_KEY = "adminSession";
 
-const userKeyForRole = (role) => (role === "owner" ? "currentOwner" : "currentOperator");
+const SESSION_CACHE_KEYS = ["empList", "activeTab", "selectedEmployee"];
+
+const userKeyForRole = (role) => {
+  if (role === "owner") return "currentOwner";
+  if (role === "operator") return "currentOperator";
+  return "currentAdmin";
+};
 
 const parseJson = (value, fallback = {}) => {
   try {
@@ -23,34 +28,20 @@ const tokenIsExpired = (token) => {
 };
 
 export const saveAuthSession = ({ role, token, user }) => {
-  localStorage.removeItem("currentOwner");
-  localStorage.removeItem("currentOperator");
-  localStorage.removeItem(ADMIN_SESSION_KEY);
+  ["currentOwner", "currentOperator", "currentAdmin", ...SESSION_CACHE_KEYS].forEach((key) => localStorage.removeItem(key));
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(ROLE_KEY, role);
   localStorage.setItem(userKeyForRole(role), JSON.stringify(user));
 };
 
-export const saveAdminSession = () => {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem("currentOwner");
-  localStorage.removeItem("currentOperator");
-  localStorage.setItem(ROLE_KEY, "admin");
-  localStorage.setItem(ADMIN_SESSION_KEY, "true");
-};
-
 export const clearAuthSession = () => {
-  [TOKEN_KEY, ROLE_KEY, ADMIN_SESSION_KEY, "currentOwner", "currentOperator", "ownerState", "operatorState"].forEach((key) => localStorage.removeItem(key));
+  [TOKEN_KEY, ROLE_KEY, "currentOwner", "currentOperator", "currentAdmin", "ownerState", "operatorState", ...SESSION_CACHE_KEYS].forEach((key) => localStorage.removeItem(key));
 };
 
 export const getAuthSession = (role) => {
   const storedRole = localStorage.getItem(ROLE_KEY);
-
-  if (role === "admin") {
-    return storedRole === "admin" && localStorage.getItem(ADMIN_SESSION_KEY) === "true" ? { role: "admin" } : null;
-  }
-
   const token = localStorage.getItem(TOKEN_KEY);
+
   if (storedRole !== role || !token || tokenIsExpired(token)) {
     if (token && tokenIsExpired(token)) clearAuthSession();
     return null;
@@ -61,8 +52,8 @@ export const getAuthSession = (role) => {
 
 export const getAuthToken = () => {
   const role = localStorage.getItem(ROLE_KEY);
-  const session = role === "owner" || role === "operator" ? getAuthSession(role) : null;
-  return session?.token || null;
+  if (!role) return null;
+  return getAuthSession(role)?.token || null;
 };
 
 export const getStoredRole = () => localStorage.getItem(ROLE_KEY);

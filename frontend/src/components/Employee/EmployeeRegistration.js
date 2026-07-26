@@ -83,7 +83,8 @@ const EmployeeRegistration = () => {
 
         const result = await axios.post(
           apiUrl("/admin-api/employees"),
-          formattedData
+          formattedData,
+          { headers: authHeaders() }
         );
         showToast(result.data.message);
       } catch (error) {

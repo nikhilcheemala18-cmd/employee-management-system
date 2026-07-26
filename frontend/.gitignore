@@ -6,6 +6,8 @@
 .pnp.js
 build/
 
+/.env
+
 # testing
 /coverage
 

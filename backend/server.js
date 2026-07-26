@@ -5,7 +5,7 @@ const app = exp();
 require('dotenv').config()
 const path = require('path')
 const mongoClient = require('mongodb').MongoClient
-app.use(cors())
+app.use(cors({ origin: process.env.FRONTEND_ORIGIN || true }))
 app.use(exp.json())
 
 
@@ -17,6 +17,7 @@ mongoClient.connect(process.env.DB_URL)
     const ownerCollection = ashrmservices.collection('OwnerCollection')
     const empCollection = ashrmservices.collection('EmpCollection')
     const employeeAttendance=ashrmservices.collection('EmployeeAttendance')
+    const adminCollection=ashrmservices.collection('AdminCollection')
     await employeeAttendance.createIndex(
         {id: 1, month: 1 ,year: 1},
         { unique: true }
@@ -24,6 +25,7 @@ mongoClient.connect(process.env.DB_URL)
     app.set('empCollection',empCollection)
     app.set('ownerCollection',ownerCollection)
     app.set('employeeAttendance',employeeAttendance)
+    app.set('adminCollection',adminCollection)
     console.log("Database connection success")
 })
 .catch(err=>{
@@ -48,7 +50,7 @@ app.use((req,res,next)=>{
 })
 
 app.use((err,req,res,next)=>{
-    res.send({messsage:"error message",payload : err.message})
+    res.status(500).send({message:"error message",payload : err.message})
 })
 
 const port = process.env.PORT

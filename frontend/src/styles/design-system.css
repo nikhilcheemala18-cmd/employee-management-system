@@ -36,7 +36,7 @@ body {
 }
 
 .public-shell {
-  min-height: calc(100vh - 96px);
+  min-height: calc(100vh - 90px);
   background: var(--app-bg);
 }
 
@@ -45,6 +45,9 @@ body {
   color: #ffffff;
   padding: 18px 24px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 30;
 }
 
 .brand-header h1 {
@@ -96,7 +99,7 @@ body {
 }
 
 .app-shell {
-  min-height: calc(100vh - 96px);
+  min-height: calc(100vh - 90px);
   display: flex;
   background: var(--app-bg);
 }
@@ -108,8 +111,8 @@ body {
   display: flex;
   flex-direction: column;
   position: sticky;
-  top: 0;
-  height: calc(100vh - 96px);
+  top: 90px;
+  height: calc(100vh - 90px);
   transition: width 180ms ease, transform 180ms ease, box-shadow 180ms ease;
   z-index: 20;
 }

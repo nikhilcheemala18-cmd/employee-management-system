@@ -1,29 +1,38 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser, faLock, faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
-import { saveAdminSession } from "../../utils/authSession";
+import { apiUrl } from "../../config/api";
+import { saveAuthSession } from "../../utils/authSession";
 
 const AdminLogin = () => {
   const [adminId, setAdminId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isPending, setIsPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
+    setIsPending(true);
 
-    // Replace with actual credentials
-    const validAdminId = "admin";
-    const validPassword = "admin@123";
+    try {
+      const res = await axios.post(apiUrl("/admin-api/login"), { id: adminId, password });
 
-    if (adminId === validAdminId && password === validPassword) {
-      saveAdminSession();
-      navigate(location.state?.from || "/adminHome", { replace: true });
-    } else {
-      setError("Invalid ID or Password");
+      if (res.data.message === "Login success") {
+        saveAuthSession({ role: "admin", token: res.data.token, user: res.data.admin });
+        navigate(location.state?.from || "/adminHome", { replace: true });
+      } else {
+        setError(res.data.message || "Invalid ID or Password");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Invalid ID or Password");
+    } finally {
+      setIsPending(false);
     }
   };
 
@@ -72,22 +81,22 @@ const AdminLogin = () => {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
-                    <span 
-                      className="input-group-text bg-light" 
+                    <span
+                      className="input-group-text bg-light"
                       style={{ cursor: 'pointer' }}
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      <FontAwesomeIcon 
-                        icon={showPassword ? faEyeSlash : faEye} 
-                        className="text-primary" 
+                      <FontAwesomeIcon
+                        icon={showPassword ? faEyeSlash : faEye}
+                        className="text-primary"
                       />
                     </span>
                   </div>
                 </div>
 
                 {/* Login Button */}
-                <button type="submit" className="btn btn-primary opacity-75 btn-lg w-100 mb-4">
-                  Login
+                <button type="submit" className="btn btn-primary opacity-75 btn-lg w-100 mb-4" disabled={isPending}>
+                  {isPending ? "Logging in..." : "Login"}
                 </button>
               </form>
 

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
 import { resetState } from '../redux/slices/operatorSlice';
-import { CalendarCheck, CalendarDays, Clock3, LayoutDashboard, RefreshCw, UserCheck, Users } from "lucide-react";
+import { CalendarCheck, CalendarDays, Lock, LayoutDashboard, RefreshCw, UserCheck, Users } from "lucide-react";
 import { apiUrl, authHeaders } from "../../config/api";
 import AppShell from "../ui/AppShell";
 import ConfirmDialog from "../ui/ConfirmDialog";
@@ -18,15 +18,22 @@ const navItems = [
   { id: "attendance", label: "Employee Attendance", icon: CalendarCheck },
 ];
 
+const daysInMonth = (month, year) => new Date(Number(year), Number(month), 0).getDate();
+
 const OperatorHome = () => {
   const { currentOperator, loginOperatorStatus } = useSelector((state) => state.operatorLoginReducer);
   const [activeTab, setActiveTab] = useState(localStorage.getItem('activeTab') || 'dashboard');
   const [empList, setEmpList] = useState(JSON.parse(localStorage.getItem('empList')) || []);
-  const [attendance, setAttendance] = useState({});
   const [selectedEmployee, setSelectedEmployee] = useState(JSON.parse(localStorage.getItem('selectedEmployee')) || null);
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
+  const [day, setDay] = useState(new Date().getDate());
+  const [roster, setRoster] = useState([]);
+  const [rosterLoading, setRosterLoading] = useState(false);
+  const [locked, setLocked] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
   const [toast, setToast] = useState(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -47,6 +54,23 @@ const OperatorHome = () => {
     }
   }, [currentOperator.serviceCenter, showToast]);
 
+  const fetchRoster = useCallback(async () => {
+    if (!currentOperator.serviceCenter) return;
+    setRosterLoading(true);
+    try {
+      const res = await axios.get(apiUrl('/operator-api/attendance/roster'), {
+        params: { serviceCenter: currentOperator.serviceCenter, month, year, day },
+        headers: authHeaders(),
+      });
+      setRoster(res.data.payload.roster);
+      setLocked(res.data.payload.locked);
+    } catch (error) {
+      showToast(error.response?.data?.message || "Error fetching attendance roster", "error");
+    } finally {
+      setRosterLoading(false);
+    }
+  }, [currentOperator.serviceCenter, month, year, day, showToast]);
+
   useEffect(() => {
     if (!loginOperatorStatus) {
       navigate('/');
@@ -61,6 +85,15 @@ const OperatorHome = () => {
   }, [activeTab, empList.length, fetchEmployees]);
 
   useEffect(() => {
+    if (activeTab === 'attendance') fetchRoster();
+  }, [activeTab, fetchRoster]);
+
+  useEffect(() => {
+    const maxDay = daysInMonth(month, year);
+    if (Number(day) > maxDay) setDay(maxDay);
+  }, [month, year, day]);
+
+  useEffect(() => {
     localStorage.setItem('empList', JSON.stringify(empList));
   }, [empList]);
 
@@ -68,32 +101,41 @@ const OperatorHome = () => {
     localStorage.setItem('selectedEmployee', JSON.stringify(selectedEmployee));
   }, [selectedEmployee]);
 
-  const handleAttendanceChange = (id, value) => {
-    setAttendance({ ...attendance, [id]: value });
+  const toggleAttendance = (id) => {
+    if (locked) return;
+    setRoster((prev) => prev.map((emp) => (emp.id === id ? { ...emp, present: !emp.present } : emp)));
   };
 
-  const submitAttendance = async () => {
-    const attendanceData = Object.keys(attendance).map((id) => ({
-      id: id,
-      month: parseInt(month, 10),
-      year: parseInt(year, 10),
-      noOfPresentDays: attendance[id],
-    }));
-
-    if (!attendanceData.length) {
-      showToast("Please enter at least one attendance value before submitting.", "error");
-      return;
-    }
-
+  const saveRoster = async () => {
     try {
-      const res = await axios.post(apiUrl('/operator-api/employeeAttendance'), attendanceData, {
-        headers: authHeaders(),
-      });
-      showToast(res.data.message || "Attendance submitted successfully.");
-      setAttendance({});
-      fetchEmployees();
+      await axios.post(apiUrl('/operator-api/attendance/roster'), {
+        serviceCenter: currentOperator.serviceCenter,
+        month: parseInt(month, 10),
+        year: parseInt(year, 10),
+        day: parseInt(day, 10),
+        entries: roster.map(({ id, present }) => ({ id, present })),
+      }, { headers: authHeaders() });
+      showToast(`Attendance saved for ${day}/${month}/${year}.`);
     } catch (error) {
-      showToast(error.response?.data?.message || "Attendance submission failed.", "error");
+      showToast(error.response?.data?.message || "Failed to save attendance.", "error");
+    }
+  };
+
+  const finalizeMonth = async () => {
+    setFinalizing(true);
+    try {
+      await axios.post(apiUrl('/operator-api/attendance/finalize'), {
+        serviceCenter: currentOperator.serviceCenter,
+        month: parseInt(month, 10),
+        year: parseInt(year, 10),
+      }, { headers: authHeaders() });
+      showToast(`${selectedMonthName} ${year} finalized and locked.`);
+      fetchRoster();
+    } catch (error) {
+      showToast(error.response?.data?.message || "Failed to finalize month.", "error");
+    } finally {
+      setFinalizing(false);
+      setShowFinalizeConfirm(false);
     }
   };
 
@@ -106,12 +148,11 @@ const OperatorHome = () => {
     navigate('/operatorLogin');
   };
 
-  const attendanceEntries = Object.entries(attendance).filter(([, value]) => value !== "" && value !== undefined);
-  const completedEntries = attendanceEntries.length;
-  const totalPresentDays = attendanceEntries.reduce((total, [, value]) => total + (Number(value) || 0), 0);
-  const averagePresentDays = completedEntries ? (totalPresentDays / completedEntries).toFixed(1) : "0";
-  const completionRate = empList.length ? Math.round((completedEntries / empList.length) * 100) : 0;
+  const presentCount = roster.filter((emp) => emp.present).length;
+  const absentCount = roster.length - presentCount;
+  const presentRate = roster.length ? Math.round((presentCount / roster.length) * 100) : 0;
   const selectedMonthName = new Date(0, Number(month) - 1).toLocaleString("default", { month: "long" });
+  const dayOptions = Array.from({ length: daysInMonth(month, year) }, (_, i) => i + 1);
 
   const renderDashboard = () => (
     <>
@@ -121,13 +162,13 @@ const OperatorHome = () => {
       />
       <div className="stats-grid">
         <StatCard icon={Users} label="Loaded employees" value={empList.length} />
-        <StatCard icon={CalendarCheck} label="Attendance entries" value={Object.keys(attendance).length} />
+        <StatCard icon={CalendarCheck} label="Attendance date" value={`${day}/${month}/${year}`} />
         <StatCard icon={LayoutDashboard} label="Service center" value={currentOperator?.serviceCenter || "-"} />
       </div>
       <div className="page-card p-4">
         <h3 className="mb-2">Attendance Workspace</h3>
         <p className="text-muted mb-0">
-          Open Employee Attendance from the sidebar to enter present days for the selected month and year.
+          Open Employee Attendance from the sidebar to mark each employee present or absent for a given day.
         </p>
       </div>
     </>
@@ -137,13 +178,13 @@ const OperatorHome = () => {
     <>
       <PageHeader
         title="Employee Attendance"
-        subtitle={`Record and review present days for ${selectedMonthName} ${year} at ${currentOperator?.serviceCenter || "your service center"}.`}
+        subtitle={`Mark present/absent for ${day} ${selectedMonthName} ${year} at ${currentOperator?.serviceCenter || "your service center"}.`}
       />
 
       <div className="attendance-filter-panel">
         <div className="attendance-filter-panel__heading">
           <div className="stat-card__icon"><CalendarDays size={20} /></div>
-          <div><h3>Attendance period</h3><p>Choose a month, then enter present days for each employee.</p></div>
+          <div><h3>Attendance date</h3><p>Choose a year, month, and day to mark attendance for.</p></div>
         </div>
         <div className="row g-3 align-items-end">
           <div className="col-md-3">
@@ -167,45 +208,70 @@ const OperatorHome = () => {
             </select>
           </div>
 
-          <div className="col-md-3">
-            <button type="button" onClick={fetchEmployees} className="app-button app-button--soft w-100">
-              <RefreshCw size={17} /> Refresh employees
+          <div className="col-md-2">
+            <label className="form-label">Select Day</label>
+            <select value={day} onChange={(e) => setDay(e.target.value)} className="form-select">
+              {dayOptions.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="col-md-4">
+            <button type="button" onClick={fetchRoster} className="app-button app-button--soft w-100">
+              <RefreshCw size={17} /> Refresh roster
             </button>
           </div>
         </div>
       </div>
 
+      {locked && (
+        <div className="page-card p-4 mt-3" style={{ borderLeft: "4px solid var(--warning)" }}>
+          <div className="d-flex align-items-center gap-2 mb-1">
+            <Lock size={18} />
+            <strong>{selectedMonthName} {year} is finalized and locked</strong>
+          </div>
+          <p className="text-muted mb-0">
+            Attendance for this month has been finalized. Ask an owner or admin to unlock it before making further changes.
+          </p>
+        </div>
+      )}
+
       <div className="stats-grid attendance-stats-grid">
-        <StatCard icon={Users} label="Employees loaded" value={empList.length} />
-        <StatCard icon={UserCheck} label="Entries completed" value={`${completedEntries}/${empList.length}`} />
-        <StatCard icon={CalendarCheck} label="Present days entered" value={totalPresentDays} />
-        <StatCard icon={Clock3} label="Average present days" value={averagePresentDays} />
+        <StatCard icon={Users} label="Employees loaded" value={roster.length} />
+        <StatCard icon={UserCheck} label="Present today" value={`${presentCount}/${roster.length}`} />
+        <StatCard icon={CalendarCheck} label="Absent today" value={absentCount} />
+        <StatCard icon={CalendarDays} label="Present rate" value={`${presentRate}%`} />
       </div>
 
       <div className="dashboard-grid dashboard-grid--employee">
-        <DashboardPanel eyebrow="Attendance summary" title="Monthly completion" subtitle={`Progress for ${selectedMonthName} ${year}.`}>
+        <DashboardPanel eyebrow="Attendance summary" title="Today's presence" subtitle={`Snapshot for ${day} ${selectedMonthName} ${year}.`}>
           <div className="attendance-progress">
-            <div className="attendance-progress__value"><strong>{completionRate}%</strong><span>completed</span></div>
-            <div className="attendance-progress__track" aria-label={`${completionRate}% attendance entries completed`}><span style={{ width: `${completionRate}%` }} /></div>
-            <p>{completedEntries ? `${completedEntries} employee record${completedEntries === 1 ? " has" : "s have"} been updated for this period.` : "Start entering present days to build this month's attendance summary."}</p>
+            <div className="attendance-progress__value"><strong>{presentRate}%</strong><span>present</span></div>
+            <div className="attendance-progress__track" aria-label={`${presentRate}% of employees marked present`}><span style={{ width: `${presentRate}%` }} /></div>
+            <p>Unmarked employees count as present by default. Untick an employee to mark them absent for this day.</p>
           </div>
         </DashboardPanel>
-        <DashboardPanel eyebrow="Daily entry snapshot" title="Today's input summary" subtitle="A live summary of the values entered in this session.">
+        <DashboardPanel eyebrow="Daily entry snapshot" title="This day's totals" subtitle="A live summary of the values loaded for this day.">
           <div className="attendance-snapshot">
-            <div><span>Updated employees</span><strong>{completedEntries}</strong></div>
-            <div><span>Pending entries</span><strong>{Math.max(empList.length - completedEntries, 0)}</strong></div>
+            <div><span>Present</span><strong>{presentCount}</strong></div>
+            <div><span>Absent</span><strong>{absentCount}</strong></div>
             <div><span>Service center</span><strong>{currentOperator?.serviceCenter || "-"}</strong></div>
           </div>
         </DashboardPanel>
       </div>
 
-      {empList.length === 0 ? (
-        <EmptyState title="No active employees found" message="Refresh the directory, or confirm that employees are assigned to your service center." />
+      {rosterLoading ? (
+        <div className="mt-4">
+          <EmptyState title="Loading attendance..." message="Fetching the roster for the selected day." />
+        </div>
+      ) : roster.length === 0 ? (
+        <EmptyState title="No active employees found" message="Refresh the roster, or confirm that employees are assigned to your service center." />
       ) : (
         <section className="attendance-table-shell">
           <div className="attendance-table-shell__header">
-            <div><p>Employee register</p><h3>Enter monthly present days</h3></div>
-            <span>{selectedMonthName} {year}</span>
+            <div><p>Employee register</p><h3>Mark present or absent</h3></div>
+            <span>{day} {selectedMonthName} {year}</span>
           </div>
           <div className="table-scroll">
             <table className="table table-hover attendance-table">
@@ -214,47 +280,46 @@ const OperatorHome = () => {
                   <th>Employee</th>
                   <th>Department</th>
                   <th>Role</th>
-                  <th>Present days</th>
-                  <th>Entry status</th>
+                  <th>Present</th>
                   <th aria-label="Employee profile" />
                 </tr>
               </thead>
               <tbody>
-                {empList.map((emp) => {
-                  const hasEntry = attendance[emp.id] !== "" && attendance[emp.id] !== undefined;
-                  return (
-                  <tr key={emp.id} className={hasEntry ? "attendance-table__row--complete" : ""}>
+                {roster.map((emp) => (
+                  <tr key={emp.id} className={emp.present ? "attendance-table__row--complete" : ""}>
                     <td><div className="attendance-employee"><span>{emp.name?.slice(0, 1) || "E"}</span><div><strong>{emp.name}</strong><small>{emp.id}</small></div></div></td>
-                    <td>{emp.cluster || "Operations"}<small>{emp.serviceCenter || "Not assigned"}</small></td>
+                    <td>{empList.find((e) => e.id === emp.id)?.cluster || "Operations"}<small>{empList.find((e) => e.id === emp.id)?.serviceCenter || currentOperator?.serviceCenter}</small></td>
                     <td><span className="attendance-role">{emp.type?.toUpperCase() || "EMPLOYEE"}</span></td>
                     <td>
                       <input
-                        type="number"
-                        className="form-control attendance-input"
-                        min="0"
-                        max="31"
-                        value={attendance[emp.id] ?? ""}
-                        onChange={(e) => handleAttendanceChange(emp.id, e.target.value)}
-                        placeholder="0"
-                        aria-label={`Present days for ${emp.name}`}
+                        type="checkbox"
+                        className="form-check-input"
+                        checked={emp.present}
+                        disabled={locked}
+                        onChange={() => toggleAttendance(emp.id)}
+                        aria-label={`Mark ${emp.name} ${emp.present ? "present" : "absent"}`}
                       />
                     </td>
-                    <td><span className={`attendance-entry-status ${hasEntry ? "attendance-entry-status--complete" : ""}`}>{hasEntry ? "Recorded" : "Pending"}</span></td>
                     <td className="text-end">
-                      <button className="app-button app-button--soft" onClick={() => setSelectedEmployee(emp)}>
+                      <button className="app-button app-button--soft" onClick={() => setSelectedEmployee(empList.find((e) => e.id === emp.id) || emp)}>
                         Profile
                       </button>
                     </td>
-                  </tr>);
-                })}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
           <div className="attendance-table-shell__footer">
-            <p><strong>{completedEntries} entries ready</strong><span>Submit the attendance values currently entered for this period.</span></p>
-            <button onClick={submitAttendance} className="app-button app-button--primary text-white" disabled={!completedEntries}>
-              Submit attendance
-            </button>
+            <p><strong>{presentCount} present, {absentCount} absent</strong><span>Save today's attendance, or finalize the whole month once it's complete.</span></p>
+            <div className="d-flex gap-2">
+              <button onClick={saveRoster} className="app-button app-button--primary text-white" disabled={locked}>
+                Save attendance for this day
+              </button>
+              <button onClick={() => setShowFinalizeConfirm(true)} className="app-button app-button--danger" disabled={locked}>
+                Finalize {selectedMonthName} {year}
+              </button>
+            </div>
           </div>
         </section>
       )}
@@ -275,6 +340,15 @@ const OperatorHome = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={showFinalizeConfirm}
+        title={`Finalize ${selectedMonthName} ${year}?`}
+        message="Once finalized, daily attendance for this month is locked and can only be reopened by an owner or admin."
+        confirmText={finalizing ? "Finalizing..." : "Finalize"}
+        onConfirm={finalizeMonth}
+        onCancel={() => setShowFinalizeConfirm(false)}
+      />
     </>
   );
 

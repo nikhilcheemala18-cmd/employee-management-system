@@ -26,58 +26,98 @@ const admin = {
   role: "admin",
 };
 
-const employeeSeedData = [
-  ["EMP1001", "Aarav Sharma", "Andhra Pradesh", "Visakhapatnam", "hk", 650, 15000, "yes", "yes"],
-  ["EMP1002", "Vivaan Patel", "Andhra Pradesh", "Guntur", "dlv", 700, 16000, "yes", "yes"],
-  ["EMP1003", "Aditya Singh", "Andhra Pradesh", "Krishna", "hk", 620, 14500, "yes", "no"],
-  ["EMP1004", "Arjun Nair", "Bihar", "Patna", "dlv", 720, 16500, "yes", "yes"],
-  ["EMP1005", "Sai Kumar", "Bihar", "Gaya", "hk", 600, 14000, "no", "yes"],
-  ["EMP1006", "Rohan Gupta", "Bihar", "Muzaffarpur", "dlv", 710, 16200, "yes", "yes"],
-  ["EMP1007", "Karthik Reddy", "Gujarat", "Ahmedabad", "hk", 640, 15000, "yes", "no"],
-  ["EMP1008", "Nikhil Rao", "Gujarat", "Bharuch", "dlv", 730, 16800, "yes", "yes"],
-  ["EMP1009", "Ananya Sharma", "Gujarat", "Gandhinagar", "hk", 610, 14200, "no", "yes"],
-  ["EMP1010", "Diya Patel", "Karnataka", "Bengaluru Urban", "dlv", 760, 17500, "yes", "yes"],
-  ["EMP1011", "Isha Verma", "Karnataka", "Belagavi", "hk", 630, 14800, "yes", "yes"],
-  ["EMP1012", "Meera Nair", "Karnataka", "Bidar", "deo", 820, 22000, "yes", "yes"],
-  ["EMP1013", "Kavya Rao", "Kerala", "Ernakulam", "hk", 650, 15000, "yes", "yes"],
-  ["EMP1014", "Aditi Singh", "Kerala", "Kozhikode", "dlv", 735, 17000, "yes", "yes"],
-  ["EMP1015", "Sneha Reddy", "Kerala", "Kollam", "hk", 615, 14300, "no", "yes"],
-  ["EMP1016", "Pooja Gupta", "Madhya Pradesh", "Bhopal", "dlv", 705, 16000, "yes", "yes"],
-  ["EMP1017", "Neha Sharma", "Madhya Pradesh", "Betul", "hk", 620, 14500, "yes", "no"],
-  ["EMP1018", "Ritika Yadav", "Madhya Pradesh", "Bhind", "dlv", 715, 16400, "yes", "yes"],
-  ["EMP1019", "Sanjay Kumar", "Maharashtra", "Ahmednagar", "hk", 660, 15300, "yes", "yes"],
-  ["EMP1020", "Manoj Patil", "Maharashtra", "Akola", "dlv", 745, 17200, "yes", "yes"],
-  ["EMP1021", "Vikram Joshi", "Maharashtra", "Amravati", "deo", 850, 24000, "yes", "yes"],
-  ["EMP1022", "Suresh Reddy", "Telangana", "Hyderabad", "hk", 650, 15000, "yes", "yes"],
-  ["EMP1023", "Mahesh Kumar", "Telangana", "Karimnagar", "dlv", 725, 16800, "yes", "yes"],
-  ["EMP1024", "Ravi Teja", "Telangana", "Khammam", "hk", 610, 14200, "no", "yes"],
-  ["EMP1025", "Lakshmi Devi", "Tamil Nadu", "Chennai", "dlv", 740, 17100, "yes", "yes"],
-  ["EMP1026", "Divya Krishnan", "Tamil Nadu", "Coimbatore", "hk", 640, 14800, "yes", "yes"],
-  ["EMP1027", "Nandini Rao", "Tamil Nadu", "Dharmapuri", "dlv", 735, 17000, "yes", "yes"],
-  ["EMP1028", "Harsha Vardhan", "Uttar Pradesh", "Aligarh", "hk", 610, 14000, "no", "yes"],
-  ["EMP1029", "Amit Yadav", "Uttar Pradesh", "Agra", "dlv", 700, 16000, "yes", "yes"],
-  ["EMP1030", "Deepak Singh", "Uttar Pradesh", "Ayodhya", "hk", 625, 14600, "yes", "no"],
-  ["EMP1031", "Prakash Mehta", "Andhra Pradesh", "Nellore", "dlv", 710, 16200, "yes", "yes"],
-  ["EMP1032", "Ganesh Naidu", "Bihar", "Bhagalpur", "hk", 600, 14000, "no", "yes"],
-  ["EMP1033", "Mohan Das", "Gujarat", "Jamnagar", "dlv", 720, 16500, "yes", "yes"],
-  ["EMP1034", "Sunil Shetty", "Karnataka", "Chamarajanagar", "hk", 650, 15000, "yes", "yes"],
-  ["EMP1035", "Joseph Mathew", "Kerala", "Kottayam", "dlv", 730, 16800, "yes", "yes"],
-  ["EMP1036", "Arvind Mishra", "Madhya Pradesh", "Burhanpur", "hk", 615, 14300, "no", "yes"],
-  ["EMP1037", "Yogesh Pawar", "Maharashtra", "Bhandara", "dlv", 735, 17000, "yes", "yes"],
-  ["EMP1038", "Naveen Goud", "Telangana", "Jagtial", "hk", 625, 14600, "yes", "yes"],
-  ["EMP1039", "Kumaravel S", "Tamil Nadu", "Erode", "dlv", 720, 16500, "yes", "yes"],
-  ["EMP1040", "Rahul Tiwari", "Uttar Pradesh", "Azamgarh", "hk", 610, 14200, "no", "yes"],
-  ["EMP1041", "Sowmya Reddy", "Telangana", "Hyderabad", "dlv", 730, 16800, "yes", "yes"],
-  ["EMP1042", "Bhavana Rao", "Karnataka", "Bengaluru Urban", "hk", 650, 15000, "yes", "yes"],
-  ["EMP1043", "Chaitanya K", "Andhra Pradesh", "Visakhapatnam", "dlv", 725, 16600, "yes", "yes"],
-  ["EMP1044", "Farhan Ali", "Maharashtra", "Chandrapur", "hk", 640, 14800, "yes", "no"],
-  ["EMP1045", "Imran Khan", "Gujarat", "Ahmedabad", "dlv", 730, 16800, "yes", "yes"],
-  ["EMP1046", "Sahana Murthy", "Kerala", "Ernakulam", "hk", 650, 15000, "yes", "yes"],
-  ["EMP1047", "Girish Kulkarni", "Madhya Pradesh", "Bhopal", "dlv", 715, 16400, "yes", "yes"],
-  ["EMP1048", "Swathi Iyer", "Tamil Nadu", "Chennai", "hk", 645, 14900, "yes", "yes"],
+// Telangana gets full district coverage (10 service centers); every other state gets
+// just its one primary service center. Districts must match frontend/src/constants/locationData.js
+// so the Employee Registration cluster/service-center dropdowns stay in sync with seeded data.
+const TELANGANA_DISTRICTS = [
+  "Adilabad", "Bhadradri Kothagudem", "Hyderabad", "Jagtial", "Jangaon",
+  "Jayashankar Bhupalpally", "Jogulamba Gadwal", "Kamareddy", "Karimnagar", "Khammam",
 ];
 
-const operatorIds = new Set(["EMP1012", "EMP1021"]);
+// operator: fixed id/name so EMP1012 (Bidar) and EMP1021 (Amravati) keep working as the
+// demo operator logins referenced by LandingPage.js and frontend/scripts/capture-screenshots.js.
+const OTHER_STATE_CENTERS = [
+  { cluster: "Andhra Pradesh", serviceCenter: "Visakhapatnam" },
+  { cluster: "Bihar", serviceCenter: "Patna" },
+  { cluster: "Gujarat", serviceCenter: "Ahmedabad" },
+  { cluster: "Karnataka", serviceCenter: "Bidar", operator: { id: "EMP1012", name: "Meera Nair" } },
+  { cluster: "Kerala", serviceCenter: "Ernakulam" },
+  { cluster: "Madhya Pradesh", serviceCenter: "Bhopal" },
+  { cluster: "Maharashtra", serviceCenter: "Amravati", operator: { id: "EMP1021", name: "Vikram Joshi" } },
+  { cluster: "Tamil Nadu", serviceCenter: "Chennai" },
+  { cluster: "Uttar Pradesh", serviceCenter: "Agra" },
+];
+
+const EMPLOYEES_PER_CENTER = 9;
+
+const FIRST_NAMES = [
+  "Aarav", "Vivaan", "Aditya", "Arjun", "Sai", "Rohan", "Karthik", "Nikhil", "Ananya", "Diya",
+  "Isha", "Meera", "Kavya", "Aditi", "Sneha", "Pooja", "Neha", "Ritika", "Sanjay", "Manoj",
+  "Vikram", "Suresh", "Mahesh", "Ravi", "Lakshmi", "Divya", "Nandini", "Harsha", "Amit", "Deepak",
+  "Prakash", "Ganesh", "Mohan", "Sunil", "Joseph", "Arvind", "Yogesh", "Naveen", "Kumaravel", "Rahul",
+  "Sowmya", "Bhavana", "Chaitanya", "Farhan", "Imran", "Sahana", "Girish", "Swathi", "Priya", "Rajesh",
+  "Anitha", "Srinivas", "Venkatesh", "Padma", "Kiran", "Shalini", "Rakesh", "Vinod", "Geetha", "Sunita",
+];
+
+const LAST_NAMES = [
+  "Sharma", "Patel", "Singh", "Nair", "Kumar", "Gupta", "Reddy", "Rao", "Patil", "Joshi",
+  "Iyer", "Krishnan", "Yadav", "Mishra", "Pawar", "Goud", "Mathew", "Shetty", "Naidu", "Das",
+  "Mehta", "Verma", "Devi", "Vardhan", "Tiwari", "Murthy", "Kulkarni", "Ali", "Khan", "Teja",
+];
+
+const nameForSeq = (seq) =>
+  `${FIRST_NAMES[seq % FIRST_NAMES.length]} ${LAST_NAMES[(seq * 7 + 3) % LAST_NAMES.length]}`;
+
+const generateEmployeeSeedData = () => {
+  const centers = [
+    ...TELANGANA_DISTRICTS.map((serviceCenter) => ({ cluster: "Telangana", serviceCenter })),
+    ...OTHER_STATE_CENTERS,
+  ];
+  const reservedIds = new Set(centers.filter((c) => c.operator).map((c) => c.operator.id));
+
+  let seq = 1;
+  const nextId = () => {
+    let id = `EMP${1000 + seq}`;
+    while (reservedIds.has(id)) {
+      seq++;
+      id = `EMP${1000 + seq}`;
+    }
+    seq++;
+    return id;
+  };
+
+  const rows = [];
+  centers.forEach((center) => {
+    const regularCount = EMPLOYEES_PER_CENTER - (center.operator ? 1 : 0);
+
+    for (let i = 0; i < regularCount; i++) {
+      const id = nextId();
+      const n = Number(id.slice(3));
+      const type = i % 2 === 0 ? "hk" : "dlv";
+      const dailyWage = type === "hk" ? 600 + ((n * 7) % 70) : 700 + ((n * 7) % 70);
+      const basic = type === "hk" ? 14000 + ((n * 53) % 1500) : 16000 + ((n * 53) % 1800);
+      const pf = n % 6 === 0 ? "no" : "yes";
+      const esic = n % 9 === 0 ? "no" : "yes";
+
+      rows.push([id, nameForSeq(n), center.cluster, center.serviceCenter, type, dailyWage, basic, pf, esic]);
+    }
+
+    if (center.operator) {
+      rows.push([
+        center.operator.id, center.operator.name, center.cluster, center.serviceCenter,
+        "deo", 830, 23000, "yes", "yes",
+      ]);
+    }
+  });
+
+  return rows;
+};
+
+const employeeSeedData = generateEmployeeSeedData();
+
+const operatorIds = new Set(
+  OTHER_STATE_CENTERS.filter((c) => c.operator).map((c) => c.operator.id)
+);
 
 const bankNames = ["State Bank of India", "HDFC Bank", "ICICI Bank", "Axis Bank", "Canara Bank", "Union Bank of India"];
 
@@ -168,9 +208,9 @@ const runSeed = async () => {
     await empCollection.createIndex({ id: 1 }, { unique: true });
     await adminCollection.createIndex({ id: 1 }, { unique: true });
 
-    const ownerPasswordHash = await bcryptjs.hash(DEFAULT_PASSWORD, 6);
-    const operatorPasswordHash = await bcryptjs.hash(DEFAULT_PASSWORD, 6);
-    const adminPasswordHash = await bcryptjs.hash(ADMIN_PASSWORD, 6);
+    const ownerPasswordHash = await bcryptjs.hash(DEFAULT_PASSWORD, 10);
+    const operatorPasswordHash = await bcryptjs.hash(DEFAULT_PASSWORD, 10);
+    const adminPasswordHash = await bcryptjs.hash(ADMIN_PASSWORD, 10);
 
     const ownerDocs = owners.map((owner) => ({ ...owner, password: ownerPasswordHash }));
     const adminDoc = { ...admin, password: adminPasswordHash };
