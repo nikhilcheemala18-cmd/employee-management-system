@@ -8,6 +8,7 @@ const mongoClient = require('mongodb').MongoClient
 app.use(cors({ origin: process.env.FRONTEND_ORIGIN || true }))
 app.use(exp.json())
 
+app.get('/health', (req, res) => res.status(200).send('OK'))
 
 app.use(exp.static(path.join(__dirname,'../frontend/build')))
 

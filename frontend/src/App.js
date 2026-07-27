@@ -1,6 +1,9 @@
 
 import './App.css'
+import { useEffect, useState } from 'react';
+import axios from 'axios';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { apiUrl } from './config/api';
 import RootLayout from './components/rootlayout/RootLayout'
 import OwnerLogin from './components/owner/OwnerLogin'
 import OperatorLogin from './components/operator/OperatorLogin';
@@ -18,9 +21,28 @@ import Footer from './components/rootlayout/Footer';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 function App() {
+  const [warming, setWarming] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    axios.get(apiUrl('/health'))
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) setWarming(false);
+      });
+
+    return () => { isMounted = false; };
+  }, []);
+
   return (
     <div>
       <Header/>
+      {warming && (
+        <div className="warmup-banner" role="status">
+          Setting things up... first load can take up to a minute.
+        </div>
+      )}
     <Router>
       <Routes>
         <Route path="/" element={<RootLayout />}>
