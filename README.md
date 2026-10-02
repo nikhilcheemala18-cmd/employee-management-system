@@ -71,7 +71,7 @@ cd backend
 npm run seed
 ```
 
-Seeds: 1 admin, 2 owners, 2 operators (as `deo` employees), 48 employees
+Seeds: 1 admin, 2 owners, 2 operators (as `deo` employees), 228 employees
 with realistic Indian names and payroll details, plus attendance records
 for the current and previous month.
 

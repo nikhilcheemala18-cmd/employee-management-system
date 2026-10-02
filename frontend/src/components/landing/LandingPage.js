@@ -19,6 +19,11 @@ import PageHeader from "../ui/PageHeader";
 import StatCard from "../ui/StatCard";
 import StatusBadge from "../ui/StatusBadge";
 import Toast from "../ui/Toast";
+import adminDashboardSlide from "../../assets/hero-slides/admin-dashboard.jpg";
+import ownerDashboardSlide from "../../assets/hero-slides/owner-dashboard.jpg";
+import employeeCardsSlide from "../../assets/hero-slides/employee-cards.jpg";
+import employeeRegistrationSlide from "../../assets/hero-slides/employee-registration.jpg";
+import attendanceTableSlide from "../../assets/hero-slides/attendance-table.jpg";
 
 const highlights = [
   {
@@ -80,6 +85,29 @@ const techStack = [
   "Docker (Coming Soon)",
 ];
 
+const heroSlides = [
+  {
+    title: "Admin Dashboard",
+    image: adminDashboardSlide,
+  },
+  {
+    title: "Owner Dashboard",
+    image: ownerDashboardSlide,
+  },
+  {
+    title: "Employee Directory",
+    image: employeeCardsSlide,
+  },
+  {
+    title: "Employee Registration",
+    image: employeeRegistrationSlide,
+  },
+  {
+    title: "Attendance Workflow",
+    image: attendanceTableSlide,
+  },
+];
+
 const previews = [
   { title: "Owner Dashboard", icon: UserCog },
   { title: "Operator Dashboard", icon: CalendarCheck },
@@ -123,38 +151,22 @@ function LandingPage() {
           </div>
         </div>
 
-        <div className="landing-illustration" aria-label="Dashboard preview illustration">
+        <div className="landing-illustration" aria-label="Project screen slideshow">
           <div className="landing-illustration__top">
             <span />
             <span />
             <span />
           </div>
-          <div className="landing-illustration__body">
-            <div className="preview-sidebar">
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-            <div className="preview-main">
-              <div className="preview-row">
-                <div className="preview-stat" />
-                <div className="preview-stat" />
-                <div className="preview-stat" />
+          <div className="landing-slideshow">
+            {heroSlides.map((slide, index) => (
+              <div
+                className="landing-slide"
+                key={slide.title}
+                style={{ animationDelay: `${index * 5}s` }}
+              >
+                <img src={slide.image} alt={`${slide.title} screen`} />
               </div>
-              <div className="preview-chart">
-                <span style={{ height: "42%" }} />
-                <span style={{ height: "68%" }} />
-                <span style={{ height: "54%" }} />
-                <span style={{ height: "82%" }} />
-                <span style={{ height: "62%" }} />
-              </div>
-              <div className="preview-table">
-                <span />
-                <span />
-                <span />
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -234,7 +246,7 @@ function LandingPage() {
 
       <section className="landing-section">
         <div className="stats-grid">
-          <StatCard icon={Users} label="Demo Employees" value="48" />
+          <StatCard icon={Users} label="Demo Employees" value="228" />
           <StatCard icon={UserCog} label="Owners" value="2" />
           <StatCard icon={CalendarCheck} label="Operators" value="2" />
         </div>

@@ -48,7 +48,7 @@ const OTHER_STATE_CENTERS = [
   { cluster: "Uttar Pradesh", serviceCenter: "Agra" },
 ];
 
-const EMPLOYEES_PER_CENTER = 9;
+const EMPLOYEES_PER_CENTER = 12;
 
 const FIRST_NAMES = [
   "Aarav", "Vivaan", "Aditya", "Arjun", "Sai", "Rohan", "Karthik", "Nikhil", "Ananya", "Diya",

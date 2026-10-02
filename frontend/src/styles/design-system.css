@@ -1532,8 +1532,8 @@ legend {
 
 .landing-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
-  gap: 34px;
+  grid-template-columns: minmax(0, 0.86fr) minmax(520px, 1.14fr);
+  gap: 40px;
   align-items: center;
   padding: 54px 0 34px;
 }
@@ -1545,23 +1545,23 @@ legend {
 }
 
 .landing-illustration {
-  min-height: 430px;
+  min-height: 448px;
   border-radius: 18px;
   overflow: hidden;
   background: #0f172a;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: var(--shadow-md);
   display: grid;
-  place-items: center;
-  padding: 24px;
+  grid-template-rows: 48px 1fr;
+  padding: 0;
 }
 
 .landing-illustration img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  border-radius: 16px;
-  box-shadow: 0 20px 70px rgba(15, 23, 42, 0.22);
+  object-fit: contain;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .preview-grid {
@@ -1614,7 +1614,7 @@ legend {
 }
 
 .landing-illustration {
-  min-height: 430px;
+  min-height: 448px;
   border-radius: 18px;
   overflow: hidden;
   background: #0f172a;
@@ -1643,6 +1643,50 @@ legend {
   display: grid;
   grid-template-columns: 92px 1fr;
   min-height: 382px;
+}
+
+.landing-slideshow {
+  position: relative;
+  min-height: 400px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.landing-slide {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  animation: landingSlideShow 25s infinite;
+}
+
+.landing-slide:first-child {
+  opacity: 1;
+}
+
+.landing-slide img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@keyframes landingSlideShow {
+  0%,
+  16% {
+    opacity: 1;
+  }
+
+  20%,
+  96% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 .preview-sidebar {
@@ -1910,6 +1954,16 @@ legend {
   color: #ffffff;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .landing-slide {
+    animation: none;
+  }
+
+  .landing-slide:not(:first-child) {
+    display: none;
+  }
+}
+
 @media (max-width: 991px) {
   .app-shell {
     display: block;
@@ -1976,6 +2030,10 @@ legend {
     min-height: 360px;
   }
 
+  .landing-slideshow {
+    min-height: 312px;
+  }
+
   .feature-grid,
   .credential-grid,
   .preview-grid {
@@ -2005,6 +2063,14 @@ legend {
 
   .landing-hero {
     padding-top: 34px;
+  }
+
+  .landing-illustration {
+    min-height: 320px;
+  }
+
+  .landing-slideshow {
+    min-height: 272px;
   }
 
   .feature-grid,
